@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+release/
+out/
+
+# Vite
+*.local
+
+# Electron
+*.blockmap
+*.exe
+*.dmg
+*.AppImage
+*.snap
+
+# Data & Runtime
+data/
+*.db
+
+# Generated files
+reports/
+recordings/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+ehthumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+
+# TypeScript
+*.tsbuildinfo

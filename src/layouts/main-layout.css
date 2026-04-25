@@ -1,0 +1,118 @@
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-md);
+  height: 36px;
+  background: var(--color-bg-secondary);
+  border-bottom: var(--border-width) solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.main-logo {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-accent);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.main-header-left,
+.main-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.header-status {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.main-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+.main-sidebar {
+  height: 100%;
+  overflow: auto;
+  background: var(--color-bg-secondary);
+  border-right: var(--border-width) solid var(--color-border);
+}
+
+.main-screencast-area {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary);
+  overflow: hidden;
+}
+
+.main-console-area {
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  border-left: var(--border-width) solid var(--color-border);
+}
+
+.main-right-panel {
+  height: 100%;
+  overflow: auto;
+  background: var(--color-bg-secondary);
+  border-left: var(--border-width) solid var(--color-border);
+  padding: var(--spacing-sm);
+}
+
+.main-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: 0 var(--spacing-md);
+  height: 24px;
+  background: var(--color-bg-secondary);
+  border-top: var(--border-width) solid var(--color-border);
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.panel-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.5px;
+}
+
+.console-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.log-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.package-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: var(--spacing-sm);
+}

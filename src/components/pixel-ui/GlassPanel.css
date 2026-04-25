@@ -1,0 +1,7 @@
+.pixel-glass {
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: var(--border-width) solid var(--color-glass-border);
+  border-radius: var(--border-radius);
+}

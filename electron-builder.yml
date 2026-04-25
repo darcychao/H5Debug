@@ -1,0 +1,23 @@
+appId: com.h5debug.app
+productName: H5Debug
+directories:
+  output: release
+  buildResources: resources
+files:
+  - dist/**/*
+  - package.json
+extraResources:
+  - from: config
+    to: config
+win:
+  target: nsis
+  icon: resources/icon.png
+mac:
+  target: dmg
+  icon: resources/icon.png
+linux:
+  target: AppImage
+  icon: resources/icon.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

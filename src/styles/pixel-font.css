@@ -1,0 +1,12 @@
+@font-face {
+  font-family: 'PixelFont';
+  src: local('Courier New');
+  font-display: swap;
+}
+
+/* Fallback pixel-style via monospace */
+.pixel-text {
+  font-family: 'PixelFont', 'Courier New', 'Lucida Console', monospace;
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+}

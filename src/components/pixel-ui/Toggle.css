@@ -1,0 +1,43 @@
+.pixel-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pixel-toggle--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pixel-toggle-track {
+  width: 36px;
+  height: 20px;
+  background: var(--color-bg-tertiary);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: 10px;
+  position: relative;
+  transition: background var(--transition-fast);
+}
+
+.pixel-toggle-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--color-text-secondary);
+  border-radius: 2px;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: all var(--transition-fast);
+}
+
+.pixel-toggle-thumb--on {
+  left: 18px;
+  background: var(--color-accent);
+}
+
+.pixel-toggle-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}

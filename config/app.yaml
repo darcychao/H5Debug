@@ -1,0 +1,31 @@
+app:
+  theme: dark
+  language: zh-CN
+
+device:
+  adb_path: adb
+  hdc_path: hdc
+  cdp_port_range:
+    - 9222
+    - 9322
+  auto_connect: true
+
+screencast:
+  quality: 80
+  max_fps: 30
+  format: jpeg
+
+network:
+  max_record_count: 5000
+  auto_enable_intercept: false
+
+testcase:
+  report_dir: ./reports
+  recording_dir: ./recordings
+  auto_screenshot_on_fail: true
+
+console:
+  max_history: 100
+
+plugin:
+  plugin_dir: ./plugins

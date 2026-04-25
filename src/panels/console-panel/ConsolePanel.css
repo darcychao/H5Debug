@@ -1,0 +1,60 @@
+.console-output {
+  flex: 1;
+  overflow: auto;
+  padding: var(--spacing-sm);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+}
+
+.console-line {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: 1px var(--spacing-xs);
+  border-radius: 2px;
+}
+
+.console-line:hover {
+  background: var(--color-bg-hover);
+}
+
+.console-line-prefix {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  min-width: 50px;
+}
+
+.console-line--error .console-line-prefix { color: var(--color-error); }
+.console-line--warn .console-line-prefix { color: var(--color-warning); }
+.console-line--info .console-line-prefix { color: var(--color-info); }
+
+.console-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.console-prompt {
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+}
+
+.console-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  padding: var(--spacing-xs);
+}
+
+.console-input::placeholder {
+  color: var(--color-text-muted);
+}
