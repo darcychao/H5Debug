@@ -32,9 +32,14 @@
     "@types/react-dom": "^18.3.7",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^41.3.0",
     "typescript": "^5.9.3",
     "vite": "^5.4.21",
     "vite-plugin-electron": "^0.28.8",
     "vite-plugin-electron-renderer": "^0.14.6"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.1.0",
+    "utf-8-validate": "^5.0.10"
   }
 }
