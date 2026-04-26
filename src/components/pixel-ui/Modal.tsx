@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import './Modal.css';
 
 interface ModalProps {
@@ -11,8 +11,6 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ open, onClose, title, children, width = 480, footer }) => {
-  const overlayRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (open) {
       const handler = (e: KeyboardEvent) => {
@@ -28,12 +26,13 @@ const Modal: React.FC<ModalProps> = ({ open, onClose, title, children, width = 4
   return (
     <div
       className="pixel-modal-overlay"
-      ref={overlayRef}
-      onClick={(e) => {
-        if (e.target === overlayRef.current) onClose();
-      }}
+      onClick={onClose}
     >
-      <div className="pixel-modal" style={{ width }}>
+      <div
+        className="pixel-modal"
+        style={{ width }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="pixel-modal-header">
           <h3 className="pixel-modal-title">{title}</h3>
           <button className="pixel-modal-close" onClick={onClose}>

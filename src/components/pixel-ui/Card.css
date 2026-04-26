@@ -36,6 +36,9 @@
 .pixel-card-body {
   padding: var(--spacing-md);
   flex: 1;
-  overflow: auto;
+  overflow-y: scroll;
+  overflow-x: hidden;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }

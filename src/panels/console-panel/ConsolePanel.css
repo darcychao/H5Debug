@@ -1,6 +1,7 @@
 .console-output {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--spacing-sm);
   font-family: var(--font-family);
   font-size: var(--font-size-xs);
