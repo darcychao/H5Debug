@@ -123,6 +123,19 @@
     "results": "Results:",
     "connectDeviceFirst": "Connect a device first to execute test cases"
   },
+  "selector": {
+    "title": "Element Selector",
+    "fetch": "Fetch DOM",
+    "loading": "Loading...",
+    "found": "Found",
+    "use": "Use",
+    "tagPlaceholder": "Tag (div, button...)",
+    "classPlaceholder": "Class name",
+    "idPlaceholder": "ID",
+    "textPlaceholder": "Text content",
+    "noMatch": "No elements match filters",
+    "hint": "Click \"Fetch DOM\" to load page elements"
+  },
   "report": {
     "title": "Test Reports",
     "noReports": "No reports yet. Execute a test case to generate one."

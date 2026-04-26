@@ -93,6 +93,26 @@ export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
     return sendWithReconnect(deviceId, 'DOM.getDocument', { depth: depth ?? -1 });
   });
 
+  ipcMain.handle('cdp:dom:querySelector', async (_event, deviceId: string, nodeId: number, selector: string) => {
+    return sendWithReconnect(deviceId, 'DOM.querySelector', { nodeId, selector });
+  });
+
+  ipcMain.handle('cdp:dom:getAttributes', async (_event, deviceId: string, nodeId: number) => {
+    return sendWithReconnect(deviceId, 'DOM.getAttributes', { nodeId });
+  });
+
+  ipcMain.handle('cdp:dom:resolveNode', async (_event, deviceId: string, nodeId: number) => {
+    return sendWithReconnect(deviceId, 'DOM.resolveNode', { nodeId });
+  });
+
+  ipcMain.handle('cdp:dom:getElements', async (_event, deviceId: string) => {
+    // Use Runtime.evaluate to get DOM elements via JavaScript (more reliable than CDP DOM)
+    return sendWithReconnect(deviceId, 'Runtime.evaluate', {
+      expression: `(()=>{const els=document.querySelectorAll('*');const r=[];for(let i=0;i<els.length&&r.length<500;i++){const el=els[i];r.push({tagName:el.tagName,id:el.id,className:el.className,text:el.textContent?.trim().slice(0,80)||''});}return r;})()`,
+      returnByValue: true,
+    });
+  });
+
   // Forward CDP events to renderer
   cdpPool.on('event', (deviceId: string, method: string, params: unknown) => {
     if (method === 'Page.screencastFrame') {

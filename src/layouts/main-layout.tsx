@@ -33,6 +33,13 @@ const MainLayout: React.FC = () => {
   const { theme, toggle } = useTheme();
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
   const [activeTestCase, setActiveTestCase] = useState<any>(null);
+  const [selectedSelector, setSelectedSelector] = useState<string>('');
+
+  const handleSelectorSelect = (sel: string) => {
+    setSelectedSelector(sel);
+    console.log('[Selector] selected:', sel);
+  };
+
   const [cdpDebug, setCdpDebug] = useState<string>('');
   const [cdpTargets, setCdpTargets] = useState<string>('');
   const devices = useDeviceStore((s) => s.devices);
@@ -135,7 +142,7 @@ const MainLayout: React.FC = () => {
             <div className="main-right-panel">
               <DeviceDetail deviceId={activeDeviceId} />
               <Recorder deviceId={activeDeviceId} />
-              <SelectorPicker deviceId={activeDeviceId} onSelect={(sel) => console.log('Selected:', sel)} />
+              <SelectorPicker deviceId={activeDeviceId} onSelect={handleSelectorSelect} />
             </div>
           </ResizableSplit>
         </ResizableSplit>
