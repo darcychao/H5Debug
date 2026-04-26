@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import ResizableSplit from '../components/resizable-split/ResizableSplit';
 import Tabs from '../components/pixel-ui/Tabs';
 import Button from '../components/pixel-ui/Button';
@@ -28,6 +29,7 @@ import Settings from '../panels/settings-panel/Settings';
 import './main-layout.css';
 
 const MainLayout: React.FC = () => {
+  const { t } = useTranslation();
   const { theme, toggle } = useTheme();
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
   const [activeTestCase, setActiveTestCase] = useState<any>(null);
@@ -49,9 +51,9 @@ const MainLayout: React.FC = () => {
           const result = await window.electronAPI.invoke('debug:listTargets', connected.cdpPort) as any;
           setCdpTargets(JSON.stringify(result?.targets ?? []));
         } else if (!connected) {
-          setCdpTargets('no connected device');
+          setCdpTargets(t('footer.noConnectedDevice'));
         } else if (connected.cdpPort === 0) {
-          setCdpTargets('no cdp port');
+          setCdpTargets(t('footer.noCdpPort'));
         }
       } catch {
         setCdpDebug('error');
@@ -68,10 +70,10 @@ const MainLayout: React.FC = () => {
       <div className="main-console-area">
         <Tabs
           items={[
-            { key: 'console', label: 'Console', content: <ConsolePanel deviceId={activeDeviceId} /> },
+            { key: 'console', label: t('nav.console'), content: <ConsolePanel deviceId={activeDeviceId} /> },
             {
               key: 'testcase',
-              label: 'TestCase',
+              label: t('nav.testcase'),
               content: (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto' }}>
                   <CaseDesigner testCase={activeTestCase} />
@@ -79,8 +81,8 @@ const MainLayout: React.FC = () => {
                 </div>
               ),
             },
-            { key: 'report', label: 'Report', content: <ReportViewer /> },
-            { key: 'plugin', label: 'Plugin', content: <PluginPanel /> },
+            { key: 'report', label: t('nav.report'), content: <ReportViewer /> },
+            { key: 'plugin', label: t('nav.plugin'), content: <PluginPanel /> },
           ]}
         />
       </div>
@@ -90,11 +92,11 @@ const MainLayout: React.FC = () => {
   const bottomArea = (
     <Tabs
       items={[
-        { key: 'network', label: 'Network', content: <NetworkPanel /> },
-        { key: 'log', label: 'Log', content: <LogPanel /> },
-        { key: 'package', label: 'Package', content: <PackagePanel /> },
-        { key: 'proxy', label: 'Proxy', content: <ProxyPanel /> },
-        { key: 'settings', label: 'Settings', content: <Settings /> },
+        { key: 'network', label: t('nav.network'), content: <NetworkPanel /> },
+        { key: 'log', label: t('nav.log'), content: <LogPanel /> },
+        { key: 'package', label: t('nav.package'), content: <PackagePanel /> },
+        { key: 'proxy', label: t('nav.proxy'), content: <ProxyPanel /> },
+        { key: 'settings', label: t('nav.settings'), content: <Settings /> },
       ]}
     />
   );
@@ -107,10 +109,10 @@ const MainLayout: React.FC = () => {
         </div>
         <div className="main-header-right">
           <span className="header-status">
-            {activeDeviceId ? `Connected: ${activeDeviceId}` : 'No device'}
+            {activeDeviceId ? `${t('footer.active')}: ${activeDeviceId}` : t('header.noDevice')}
           </span>
           <Button variant="ghost" size="sm" onClick={toggle}>
-            {theme === 'dark' ? 'Light' : 'Dark'}
+            {theme === 'dark' ? t('header.light') : t('header.dark')}
           </Button>
         </div>
       </header>
@@ -138,11 +140,11 @@ const MainLayout: React.FC = () => {
       </div>
 
       <footer className="main-footer">
-        <span>Devices: {connectedCount}</span>
-        <span>CDP: {activeDeviceId ? 'Active' : '--'}</span>
-        <span>CDP Pool: {cdpDebug || '--'}</span>
-        <span>Targets: {cdpTargets || '--'}</span>
-        <span>Memory: --</span>
+        <span>{t('footer.devices')}: {connectedCount}</span>
+        <span>{t('footer.cdp')}: {activeDeviceId ? t('footer.active') : '--'}</span>
+        <span>{t('footer.cdpPool')}: {cdpDebug || '--'}</span>
+        <span>{t('footer.targets')}: {cdpTargets || '--'}</span>
+        <span>{t('footer.memory')}: --</span>
       </footer>
     </div>
   );

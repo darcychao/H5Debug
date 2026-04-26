@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/pixel-ui/Card';
 import Button from '../../components/pixel-ui/Button';
 import Input from '../../components/pixel-ui/Input';
@@ -11,14 +12,15 @@ interface ExecutionPanelProps {
 }
 
 const ExecutionPanel: React.FC<ExecutionPanelProps> = ({ testCase }) => {
+  const { t } = useTranslation();
   const { executing, currentResults, setExecuting, addResult, clearResults, addReport } = useTestcaseStore();
   const devices = useDeviceStore((s) => s.devices.filter((d) => d.status === 'connected'));
 
   if (!testCase) {
     return (
-      <Card title="Execution">
+      <Card title={t('testcase.execution')}>
         <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
-          Select a test case to execute
+          {t('testcase.selectToExecute')}
         </div>
       </Card>
     );
@@ -63,21 +65,21 @@ const ExecutionPanel: React.FC<ExecutionPanelProps> = ({ testCase }) => {
   };
 
   return (
-    <Card title="Execution">
+    <Card title={t('testcase.execution')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
         <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
-          {testCase.name} — {testCase.steps.length} steps
+          {testCase.name} — {testCase.steps.length} {t('testcase.steps')}
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
           {devices.length > 0 && (
             <Button size="sm" variant="primary" onClick={() => handleExecute(`${devices[0].type}:${devices[0].id}`)} disabled={executing}>
-              {executing ? 'Running...' : 'Execute'}
+              {executing ? t('testcase.running') : t('testcase.execute')}
             </Button>
           )}
           {devices.length > 1 && (
             <Button size="sm" variant="secondary" onClick={handleBatchExecute} disabled={executing}>
-              Batch Execute
+              {t('testcase.batchExecute')}
             </Button>
           )}
         </div>
@@ -85,7 +87,7 @@ const ExecutionPanel: React.FC<ExecutionPanelProps> = ({ testCase }) => {
         {currentResults.length > 0 && (
           <div style={{ marginTop: 'var(--spacing-sm)' }}>
             <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, marginBottom: 'var(--spacing-xs)' }}>
-              Results:
+              {t('testcase.results')}
             </div>
             {currentResults.map((r, idx) => (
               <div key={r.stepId} style={{
@@ -107,7 +109,7 @@ const ExecutionPanel: React.FC<ExecutionPanelProps> = ({ testCase }) => {
 
         {devices.length === 0 && (
           <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
-            Connect a device first to execute test cases
+            {t('testcase.connectDeviceFirst')}
           </div>
         )}
       </div>

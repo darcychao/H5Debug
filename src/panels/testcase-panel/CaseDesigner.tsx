@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/pixel-ui/Card';
 import Button from '../../components/pixel-ui/Button';
 import Input from '../../components/pixel-ui/Input';
@@ -11,6 +12,7 @@ interface CaseDesignerProps {
 }
 
 const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase }) => {
+  const { t } = useTranslation();
   const { updateTestCase, addStep, updateStep, deleteStep } = useTestcaseStore();
   const [showStepEditor, setShowStepEditor] = useState(false);
   const [editingStep, setEditingStep] = useState<TestStep | null>(null);
@@ -18,9 +20,9 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase }) => {
 
   if (!testCase) {
     return (
-      <Card title="Case Designer">
+      <Card title={t('testcase.caseDesigner')}>
         <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
-          Select a test case to design
+          {t('testcase.selectToDesign')}
         </div>
       </Card>
     );
@@ -53,11 +55,11 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase }) => {
   };
 
   const stepTypeLabels: Record<StepType, string> = {
-    input: 'Input',
-    click: 'Click',
-    screenshot: 'Screenshot',
-    branch: 'Branch',
-    loop: 'Loop',
+    input: t('testcase.input'),
+    click: t('testcase.click'),
+    screenshot: t('testcase.screenshot'),
+    branch: t('testcase.branch'),
+    loop: t('testcase.loop'),
   };
 
   return (
@@ -66,7 +68,7 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase }) => {
       headerActions={
         <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
           <Input value={testCase.name} onChange={(e) => updateTestCase(testCase.id, { name: (e.target as HTMLInputElement).value })} style={{ width: 150 }} />
-          <Button size="sm" variant="primary" onClick={() => handleAddStep(testCase.steps.length - 1)}>+ Step</Button>
+          <Button size="sm" variant="primary" onClick={() => handleAddStep(testCase.steps.length - 1)}>{t('testcase.addStep')}</Button>
         </div>
       }
     >
@@ -94,23 +96,23 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase }) => {
           }}>
             {stepTypeLabels[step.type]}
           </span>
-          <span style={{ flex: 1 }}>{step.name || step.selector || '(no name)'}</span>
-          <Button size="sm" variant="ghost" onClick={() => { setEditingStep({ ...step }); setShowStepEditor(true); }}>Edit</Button>
-          <Button size="sm" variant="ghost" onClick={() => deleteStep(testCase.id, step.id)}>Del</Button>
+          <span style={{ flex: 1 }}>{step.name || step.selector || t('testcase.noName')}</span>
+          <Button size="sm" variant="ghost" onClick={() => { setEditingStep({ ...step }); setShowStepEditor(true); }}>{t('network.edit')}</Button>
+          <Button size="sm" variant="ghost" onClick={() => deleteStep(testCase.id, step.id)}>{t('testcase.del')}</Button>
         </div>
       ))}
 
       {testCase.steps.length === 0 && (
         <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
-          No steps yet. Click "+ Step" to add.
+          {t('testcase.noStepsYet')}
         </div>
       )}
 
       <Modal
         open={showStepEditor}
         onClose={() => { setShowStepEditor(false); setEditingStep(null); }}
-        title="Step Editor"
-        footer={<Button variant="primary" onClick={handleSaveStep}>Save</Button>}
+        title={t('testcase.stepEditor')}
+        footer={<Button variant="primary" onClick={handleSaveStep}>{t('testcase.save')}</Button>}
       >
         {editingStep && (
           <StepEditorForm step={editingStep} onChange={setEditingStep} allSteps={testCase.steps} />
@@ -129,48 +131,48 @@ const StepEditorForm: React.FC<{
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-      <Input label="Step Name" value={step.name} onChange={(e) => update({ name: (e.target as HTMLInputElement).value })} />
-      <Input label="Description" value={step.description} onChange={(e) => update({ description: (e.target as HTMLInputElement).value })} />
+      <Input label={t('testcase.stepName')} value={step.name} onChange={(e) => update({ name: (e.target as HTMLInputElement).value })} />
+      <Input label={t('testcase.description')} value={step.description} onChange={(e) => update({ description: (e.target as HTMLInputElement).value })} />
       <Select
-        label="Type"
+        label={t('testcase.type')}
         value={step.type}
         options={[
-          { value: 'click', label: 'Click' },
-          { value: 'input', label: 'Input' },
-          { value: 'screenshot', label: 'Screenshot' },
-          { value: 'branch', label: 'Branch' },
-          { value: 'loop', label: 'Loop' },
+          { value: 'click', label: t('testcase.click') },
+          { value: 'input', label: t('testcase.input') },
+          { value: 'screenshot', label: t('testcase.screenshot') },
+          { value: 'branch', label: t('testcase.branch') },
+          { value: 'loop', label: t('testcase.loop') },
         ]}
         onChange={(v) => update({ type: v as StepType })}
       />
       {(step.type === 'click' || step.type === 'input') && (
-        <Input label="Selector" value={step.selector || ''} onChange={(e) => update({ selector: (e.target as HTMLInputElement).value })} placeholder="e.g. #login-btn" />
+        <Input label={t('testcase.selector')} value={step.selector || ''} onChange={(e) => update({ selector: (e.target as HTMLInputElement).value })} placeholder="e.g. #login-btn" />
       )}
       {step.type === 'input' && (
         <>
-          <Input label="Input Value" value={step.inputValue || ''} onChange={(e) => update({ inputValue: (e.target as HTMLInputElement).value })} />
-          <Input label="Verify Value" value={step.verifyValue || ''} onChange={(e) => update({ verifyValue: (e.target as HTMLInputElement).value })} />
+          <Input label={t('testcase.inputValue')} value={step.inputValue || ''} onChange={(e) => update({ inputValue: (e.target as HTMLInputElement).value })} />
+          <Input label={t('testcase.verifyValue')} value={step.verifyValue || ''} onChange={(e) => update({ verifyValue: (e.target as HTMLInputElement).value })} />
         </>
       )}
       {step.type === 'branch' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
           <Select
-            label="Condition Type"
+            label={t('testcase.conditionType')}
             value={step.condition?.type || 'elementExists'}
             options={[
-              { value: 'elementExists', label: 'Element Exists' },
-              { value: 'elementNotExists', label: 'Element Not Exists' },
+              { value: 'elementExists', label: t('testcase.elementExists') },
+              { value: 'elementNotExists', label: t('testcase.elementNotExists') },
             ]}
             onChange={(v) => update({ condition: { type: v as 'elementExists' | 'elementNotExists', selector: step.condition?.selector || '' } })}
           />
-          <Input label="Condition Selector" value={step.condition?.selector || ''} onChange={(e) => update({ condition: { type: step.condition?.type || 'elementExists', selector: (e.target as HTMLInputElement).value } })} />
+          <Input label={t('testcase.conditionSelector')} value={step.condition?.selector || ''} onChange={(e) => update({ condition: { type: step.condition?.type || 'elementExists', selector: (e.target as HTMLInputElement).value } })} />
         </div>
       )}
       {step.type === 'loop' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
-          <Input label="Loop Count" type="number" value={String(step.loop?.count || 1)} onChange={(e) => update({ loop: { stepIds: step.loop?.stepIds || [], count: parseInt((e.target as HTMLInputElement).value) || 1 } })} />
+          <Input label={t('testcase.loopCount')} type="number" value={String(step.loop?.count || 1)} onChange={(e) => update({ loop: { stepIds: step.loop?.stepIds || [], count: parseInt((e.target as HTMLInputElement).value) || 1 } })} />
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
-            Select steps to loop:
+            {t('testcase.selectStepsToLoop')}
           </div>
           {allSteps.filter((s) => s.id !== step.id).map((s) => (
             <label key={s.id} style={{ display: 'flex', gap: 'var(--spacing-xs)', fontSize: 'var(--font-size-xs)' }}>

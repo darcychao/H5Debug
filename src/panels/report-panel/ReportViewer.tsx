@@ -1,19 +1,21 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/pixel-ui/Card';
 import Button from '../../components/pixel-ui/Button';
 import { useTestcaseStore, TestReport } from '../../stores/testcase.store';
 
 const ReportViewer: React.FC = () => {
+  const { t } = useTranslation();
   const reports = useTestcaseStore((s) => s.reports);
 
   const statusColor = (status: string) =>
     status === 'passed' ? 'var(--color-success)' : status === 'failed' ? 'var(--color-error)' : 'var(--color-text-muted)';
 
   return (
-    <Card title="Test Reports">
+    <Card title={t('report.title')}>
       {reports.length === 0 ? (
         <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
-          No reports yet. Execute a test case to generate one.
+          {t('report.noReports')}
         </div>
       ) : (
         reports.map((report) => (

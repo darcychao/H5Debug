@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useConsoleStore } from '../../stores/console.store';
 import './ConsolePanel.css';
 
@@ -7,6 +8,7 @@ interface ConsoleInputProps {
 }
 
 const ConsoleInput: React.FC<ConsoleInputProps> = ({ deviceId }) => {
+  const { t } = useTranslation();
   const [value, setValue] = useState('');
   const { executeExpression, history, historyIndex, setHistoryIndex } = useConsoleStore();
 
@@ -50,7 +52,7 @@ const ConsoleInput: React.FC<ConsoleInputProps> = ({ deviceId }) => {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Enter JS expression..."
+        placeholder={t('console.placeholder')}
         spellCheck={false}
       />
     </div>

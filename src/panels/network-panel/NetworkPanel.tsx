@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/pixel-ui/Card';
 import Button from '../../components/pixel-ui/Button';
 import Input from '../../components/pixel-ui/Input';
@@ -10,6 +11,7 @@ import { useNetworkStore, InterceptRule } from '../../stores/network.store';
 import './NetworkPanel.css';
 
 const NetworkPanel: React.FC = () => {
+  const { t } = useTranslation();
   const {
     requests,
     interceptEnabled,
@@ -40,18 +42,18 @@ const NetworkPanel: React.FC = () => {
   return (
     <div className="network-panel">
       <div className="network-toolbar">
-        <Toggle label="Intercept" checked={interceptEnabled} onChange={setInterceptEnabled} />
+        <Toggle label={t('network.intercept')} checked={interceptEnabled} onChange={setInterceptEnabled} />
         <Input
-          placeholder="Filter URLs..."
+          placeholder={t('network.filterPlaceholder')}
           value={filterText}
           onChange={(e) => setFilterText((e.target as HTMLInputElement).value)}
           style={{ flex: 1 }}
         />
         <Button size="sm" variant="secondary" onClick={() => setShowRuleEditor(true)}>
-          + Rule
+          {t('network.addRule')}
         </Button>
         <Button size="sm" variant="ghost" onClick={clearRequests}>
-          Clear
+          {t('network.clear')}
         </Button>
       </div>
 
@@ -70,7 +72,7 @@ const NetworkPanel: React.FC = () => {
             </div>
           ))}
           {filteredRequests.length === 0 && (
-            <div className="network-empty">No network requests captured</div>
+            <div className="network-empty">{t('network.noRequests')}</div>
           )}
         </div>
 
@@ -80,7 +82,7 @@ const NetworkPanel: React.FC = () => {
               items={[
                 {
                   key: 'headers',
-                  label: 'Headers',
+                  label: t('network.headers'),
                   content: (
                     <pre className="network-json">
                       {JSON.stringify(selectedRequest.headers, null, 2)}
@@ -89,21 +91,21 @@ const NetworkPanel: React.FC = () => {
                 },
                 {
                   key: 'body',
-                  label: 'Body',
+                  label: t('network.body'),
                   content: (
                     <pre className="network-json">
-                      {selectedRequest.postData || '(no body)'}
+                      {selectedRequest.postData || t('network.noBody')}
                     </pre>
                   ),
                 },
                 {
                   key: 'response',
-                  label: 'Response',
+                  label: t('network.response'),
                   content: (
                     <pre className="network-json">
                       {selectedResponse
                         ? JSON.stringify({ status: selectedResponse.status, headers: selectedResponse.headers, body: selectedResponse.body }, null, 2)
-                        : '(pending)'}
+                        : t('network.pending')}
                     </pre>
                   ),
                 },
@@ -116,7 +118,7 @@ const NetworkPanel: React.FC = () => {
       {/* Intercept Rules Section */}
       {interceptRules.length > 0 && (
         <div className="network-rules">
-          <div className="network-rules-header">Intercept Rules</div>
+          <div className="network-rules-header">{t('network.interceptRules')}</div>
           {interceptRules.map((rule) => (
             <div key={rule.id} className="network-rule-item">
               <Toggle
@@ -126,10 +128,10 @@ const NetworkPanel: React.FC = () => {
               <span className={`network-rule-action network-rule-action--${rule.action}`}>{rule.action}</span>
               <span className="network-rule-pattern">{rule.name || rule.urlPattern}</span>
               <Button size="sm" variant="ghost" onClick={() => { setEditingRule(rule); setShowRuleEditor(true); }}>
-                Edit
+                {t('network.edit')}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => removeInterceptRule(rule.id)}>
-                Del
+                {t('network.del')}
               </Button>
             </div>
           ))}
@@ -139,7 +141,7 @@ const NetworkPanel: React.FC = () => {
       <Modal
         open={showRuleEditor}
         onClose={() => { setShowRuleEditor(false); setEditingRule(null); }}
-        title={editingRule ? 'Edit Rule' : 'New Intercept Rule'}
+        title={editingRule ? t('network.editRule') : t('network.newRule')}
         footer={
           <Button
             variant="primary"
@@ -153,7 +155,7 @@ const NetworkPanel: React.FC = () => {
               setEditingRule(null);
             }}
           >
-            Save
+            {t('network.save')}
           </Button>
         }
       >
@@ -184,22 +186,22 @@ const InterceptRuleEditor: React.FC<{
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-      <Input label="Rule Name" value={current.name} onChange={(e) => update({ name: (e.target as HTMLInputElement).value })} />
-      <Input label="URL Pattern (regex)" value={current.urlPattern} onChange={(e) => update({ urlPattern: (e.target as HTMLInputElement).value })} />
+      <Input label={t('network.ruleName')} value={current.name} onChange={(e) => update({ name: (e.target as HTMLInputElement).value })} />
+      <Input label={t('network.urlPattern')} value={current.urlPattern} onChange={(e) => update({ urlPattern: (e.target as HTMLInputElement).value })} />
       <Select
-        label="Action"
+        label={t('network.action')}
         value={current.action}
         options={[
-          { value: 'block', label: 'Block' },
-          { value: 'modify', label: 'Modify' },
-          { value: 'mock', label: 'Mock' },
+          { value: 'block', label: t('network.block') },
+          { value: 'modify', label: t('network.modify') },
+          { value: 'mock', label: t('network.mock') },
         ]}
         onChange={(v) => update({ action: v as InterceptRule['action'] })}
       />
       {current.action === 'mock' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)', marginTop: 'var(--spacing-sm)' }}>
-          <Input label="Status Code" type="number" value={String(current.mockResponse?.statusCode || 200)} onChange={(e) => update({ mockResponse: { ...current.mockResponse!, statusCode: parseInt((e.target as HTMLInputElement).value) || 200, body: current.mockResponse?.body || '' } })} />
-          <label style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>Response Body</label>
+          <Input label={t('network.statusCode')} type="number" value={String(current.mockResponse?.statusCode || 200)} onChange={(e) => update({ mockResponse: { ...current.mockResponse!, statusCode: parseInt((e.target as HTMLInputElement).value) || 200, body: current.mockResponse?.body || '' } })} />
+          <label style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>{t('network.responseBody')}</label>
           <textarea
             className="mock-body-editor"
             value={current.mockResponse?.body || ''}

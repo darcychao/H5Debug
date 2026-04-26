@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/pixel-ui/Card';
 import Button from '../../components/pixel-ui/Button';
 import { useDeviceStore, DeviceInfo } from '../../stores/device.store';
@@ -10,6 +11,7 @@ interface DeviceListProps {
 }
 
 const DeviceList: React.FC<DeviceListProps> = ({ onDeviceSelect, activeDeviceId }) => {
+  const { t } = useTranslation();
   const { devices, fetchDevices, connectDevice, disconnectDevice } = useDeviceStore();
 
   useEffect(() => {
@@ -59,7 +61,7 @@ const DeviceList: React.FC<DeviceListProps> = ({ onDeviceSelect, activeDeviceId 
               connectDevice(device.id, device.type);
             }}
           >
-            Connect
+            {t('device.connect')}
           </Button>
         )}
         {device.status === 'connected' && (
@@ -71,7 +73,7 @@ const DeviceList: React.FC<DeviceListProps> = ({ onDeviceSelect, activeDeviceId 
               disconnectDevice(device.id, device.type);
             }}
           >
-            Disconnect
+            {t('device.disconnect')}
           </Button>
         )}
       </div>
@@ -80,14 +82,14 @@ const DeviceList: React.FC<DeviceListProps> = ({ onDeviceSelect, activeDeviceId 
 
   return (
     <div className="device-list">
-      <Card title="ADB Devices" className="device-list-section">
+      <Card title={t('device.adbDevices')} className="device-list-section">
         {adbDevices.length > 0 ? adbDevices.map(renderDevice) : (
-          <div className="device-list-empty">No ADB devices</div>
+          <div className="device-list-empty">{t('device.noAdbDevices')}</div>
         )}
       </Card>
-      <Card title="HDC Devices" className="device-list-section">
+      <Card title={t('device.hdcDevices')} className="device-list-section">
         {hdcDevices.length > 0 ? hdcDevices.map(renderDevice) : (
-          <div className="device-list-empty">No HDC devices</div>
+          <div className="device-list-empty">{t('device.noHdcDevices')}</div>
         )}
       </Card>
     </div>

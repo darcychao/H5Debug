@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/pixel-ui/Card';
 import Button from '../../components/pixel-ui/Button';
 import Toggle from '../../components/pixel-ui/Toggle';
@@ -12,6 +13,7 @@ interface PluginInfo {
 }
 
 const PluginList: React.FC = () => {
+  const { t } = useTranslation();
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
 
   const fetchPlugins = async () => {
@@ -41,7 +43,7 @@ const PluginList: React.FC = () => {
   };
 
   return (
-    <Card title="Plugins">
+    <Card title={t('plugin.title')}>
       {plugins.map((plugin) => (
         <div key={plugin.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', padding: 'var(--spacing-xs) 0', borderBottom: '1px solid var(--color-border)', fontSize: 'var(--font-size-xs)' }}>
           <Toggle checked={plugin.enabled} onChange={(v) => handleToggle(plugin.id, v)} />
@@ -49,12 +51,12 @@ const PluginList: React.FC = () => {
             <div style={{ fontWeight: 600, color: 'var(--color-accent)' }}>{plugin.name} <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>v{plugin.version}</span></div>
             <div style={{ color: 'var(--color-text-secondary)', fontSize: '10px' }}>{plugin.description}</div>
           </div>
-          <Button size="sm" variant="ghost" onClick={() => handleUninstall(plugin.id)}>Uninstall</Button>
+          <Button size="sm" variant="ghost" onClick={() => handleUninstall(plugin.id)}>{t('plugin.uninstall')}</Button>
         </div>
       ))}
       {plugins.length === 0 && (
         <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
-          No plugins installed
+          {t('plugin.noPlugins')}
         </div>
       )}
     </Card>

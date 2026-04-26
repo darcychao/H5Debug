@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Button from '../../components/pixel-ui/Button';
 
 interface ScreenControlsProps {
@@ -16,19 +17,20 @@ const ScreenControls: React.FC<ScreenControlsProps> = ({
   onStop,
   onScreenshot,
 }) => {
+  const { t } = useTranslation();
   return (
     <div style={{ display: 'flex', gap: 'var(--spacing-sm)', padding: 'var(--spacing-xs)' }}>
       {!streaming ? (
         <Button size="sm" variant="primary" onClick={onStart} disabled={!deviceId}>
-          Start Stream
+          {t('screencast.startStream')}
         </Button>
       ) : (
         <Button size="sm" variant="danger" onClick={onStop}>
-          Stop Stream
+          {t('screencast.stopStream')}
         </Button>
       )}
       <Button size="sm" variant="secondary" onClick={onScreenshot} disabled={!deviceId || !streaming}>
-        Screenshot
+        {t('screencast.screenshot')}
       </Button>
     </div>
   );

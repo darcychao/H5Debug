@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Select from '../../components/pixel-ui/Select';
 import Input from '../../components/pixel-ui/Input';
 import { useLogStore } from '../../stores/log.store';
 import './LogPanel.css';
 
 const LogFilter: React.FC = () => {
+  const { t } = useTranslation();
   const { filterLevel, filterSource, filterText, setFilterLevel, setFilterSource, setFilterText } = useLogStore();
 
   return (
@@ -12,7 +14,7 @@ const LogFilter: React.FC = () => {
       <Select
         value={filterLevel}
         options={[
-          { value: 'all', label: 'All Levels' },
+          { value: 'all', label: t('log.allLevels') },
           { value: 'ERROR', label: 'ERROR' },
           { value: 'WARNING', label: 'WARNING' },
           { value: 'INFO', label: 'INFO' },
@@ -23,7 +25,7 @@ const LogFilter: React.FC = () => {
       <Select
         value={filterSource}
         options={[
-          { value: 'all', label: 'All Sources' },
+          { value: 'all', label: t('log.allSources') },
           { value: 'device', label: 'Device' },
           { value: 'cdp', label: 'CDP' },
           { value: 'app', label: 'App' },
@@ -31,7 +33,7 @@ const LogFilter: React.FC = () => {
         onChange={setFilterSource}
       />
       <Input
-        placeholder="Filter logs..."
+        placeholder={t('log.filterPlaceholder')}
         value={filterText}
         onChange={(e) => setFilterText((e.target as HTMLInputElement).value)}
       />

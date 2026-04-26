@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/pixel-ui/Card';
 import Button from '../../components/pixel-ui/Button';
 import { useDeviceStore } from '../../stores/device.store';
@@ -8,6 +9,7 @@ interface DeviceDetailProps {
 }
 
 const DeviceDetail: React.FC<DeviceDetailProps> = ({ deviceId }) => {
+  const { t } = useTranslation();
   const devices = useDeviceStore((s) => s.devices);
   const { connectDevice, disconnectDevice } = useDeviceStore();
   const [debugInfo, setDebugInfo] = useState<string>('');
@@ -27,36 +29,36 @@ const DeviceDetail: React.FC<DeviceDetailProps> = ({ deviceId }) => {
 
   if (!device) {
     return (
-      <Card title="Device Detail">
+      <Card title={t('device.title')}>
         <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
-          No device selected
+          {t('device.noDevice')}
         </div>
       </Card>
     );
   }
 
   return (
-    <Card title="Device Detail">
+    <Card title={t('device.title')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)', fontSize: 'var(--font-size-xs)' }}>
-        <DetailRow label="Type" value={device.type.toUpperCase()} />
-        <DetailRow label="Model" value={device.model} />
-        <DetailRow label="OS Version" value={device.osVersion} />
-        <DetailRow label="Screen" value={`${device.screenWidth}x${device.screenHeight}`} />
-        <DetailRow label="CDP Port" value={device.cdpPort ? String(device.cdpPort) : '--'} />
-        <DetailRow label="Status" value={device.status} />
-        <DetailRow label="Last Active" value={new Date(device.lastActiveAt).toLocaleTimeString()} />
+        <DetailRow label={t('device.type')} value={device.type.toUpperCase()} />
+        <DetailRow label={t('device.model')} value={device.model} />
+        <DetailRow label={t('device.osVersion')} value={device.osVersion} />
+        <DetailRow label={t('device.screen')} value={`${device.screenWidth}x${device.screenHeight}`} />
+        <DetailRow label={t('device.cdpPort')} value={device.cdpPort ? String(device.cdpPort) : '--'} />
+        <DetailRow label={t('device.status')} value={device.status} />
+        <DetailRow label={t('device.lastActive')} value={new Date(device.lastActiveAt).toLocaleTimeString()} />
         {(device as any).webviewPorts && Object.keys((device as any).webviewPorts).length > 0 && (
           <DetailRow
-            label="WebView Ports"
+            label={t('device.webviewPorts')}
             value={JSON.stringify((device as any).webviewPorts)}
           />
         )}
 
         <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginTop: 'var(--spacing-xs)' }}>
           {device.status !== 'connected' ? (
-            <Button size="sm" variant="primary" onClick={() => connectDevice(device.id, device.type)}>Connect</Button>
+            <Button size="sm" variant="primary" onClick={() => connectDevice(device.id, device.type)}>{t('device.connect')}</Button>
           ) : (
-            <Button size="sm" variant="danger" onClick={() => disconnectDevice(device.id, device.type)}>Disconnect</Button>
+            <Button size="sm" variant="danger" onClick={() => disconnectDevice(device.id, device.type)}>{t('device.disconnect')}</Button>
           )}
         </div>
 
