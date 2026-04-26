@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { useCdpEvent } from '../../hooks/useCdpEvent';
 import { useScreencastStore } from '../../stores/screencast.store';
 import { useDeviceStore } from '../../stores/device.store';
+import { screencastBridge } from '../../services/screencast-bridge';
 import Button from '../../components/pixel-ui/Button';
 import './ScreenView.css';
 
@@ -22,40 +22,53 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
   const deviceWidth = deviceInfo?.screenWidth || 360;
   const deviceHeight = deviceInfo?.screenHeight || 640;
 
-  // Refs for RAF loop - no React state involved
-  const latestFrameRef = useRef<string | null>(null);
-  const frameCountRef = useRef(0);
-  const drawnCountRef = useRef(0);
-  const streamingRef = useRef(false);
+  // Keep streamingRef in sync — used by RAF loop which runs outside React's lifecycle
+  const streamingRef = useRef(streaming);
   streamingRef.current = streaming;
 
-  // Handle incoming screencast frame data - update ref + counter
-  const handleFrame = useCallback((args: any) => {
-    const data = args?.params?.data;
-    if (data) {
-      latestFrameRef.current = data;
-      frameCountRef.current++;
-    }
+  // Track visibility for debugging tab switch issues
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      console.log('[RAF] visibilitychange:', document.visibilityState, 'streaming=', streamingRef.current);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  useCdpEvent('cdp:screencast:frame', handleFrame);
-
-  // RAF render loop - every new frame is drawn exactly once, in order
+  // RAF render loop - runs continuously, independent of React streaming state.
+  // This prevents the placeholder from flashing over real content during tab switches.
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
     let rafId: number;
+    let frameLogged = false;
 
     const renderLoop = () => {
-      const frameData = latestFrameRef.current;
-      const frameCount = frameCountRef.current;
-      const drawnCount = drawnCountRef.current;
-      const isStreaming = streamingRef.current;
+      // Always read canvas fresh from ref
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        if (!frameLogged) console.log('[RAF] no canvas');
+        rafId = requestAnimationFrame(renderLoop);
+        return;
+      }
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        if (!frameLogged) console.log('[RAF] no ctx');
+        rafId = requestAnimationFrame(renderLoop);
+        return;
+      }
 
-      if (!isStreaming || !deviceId) {
+      const frameData = screencastBridge.getLatestFrame();
+      const { frameCount, drawnCount } = screencastBridge.getCounts();
+      const isStreaming = streamingRef.current;
+      frameLogged = false;
+
+      // Log every 60 frames to track state during tab switches
+      if (frameCount > 0 && frameCount % 60 === 0) {
+        console.log(`[RAF] frames=${frameCount} drawn=${drawnCount} streaming=${isStreaming} hasData=${!!frameData} canvas=${canvas.width}x${canvas.height} vis=${document.visibilityState}`);
+      }
+
+      // Only show placeholder if we have no frame data at all AND no device or not streaming
+      const hasFrameData = frameData && frameCount > 0;
+      if (!hasFrameData) {
         canvas.width = deviceWidth;
         canvas.height = deviceHeight;
         ctx.fillStyle = '#1a1a2e';
@@ -64,7 +77,7 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
         ctx.font = `${Math.round(canvas.height / 20)}px "Courier New", monospace`;
         ctx.textAlign = 'center';
         ctx.fillText(
-          deviceId ? 'Waiting for stream...' : 'No device connected',
+          !deviceId ? 'No device connected' : !isStreaming ? 'Click "Start" to stream' : 'Waiting for stream...',
           canvas.width / 2,
           canvas.height / 2,
         );
@@ -72,17 +85,34 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
         return;
       }
 
-      // Only draw if there's a new frame we haven't drawn yet
-      if (frameData && frameCount > drawnCount) {
+      // Draw new frames
+      if (frameCount > drawnCount) {
         const img = new Image();
         img.onload = () => {
-          // Only draw if this frame hasn't been superseded
-          if (drawnCountRef.current >= frameCount) return;
-          drawnCountRef.current = frameCount;
-          canvas.width = img.width;
-          canvas.height = img.height;
+          if (!img.complete || img.naturalWidth === 0) {
+            if (!frameLogged) console.log('[RAF] img incomplete');
+            return;
+          }
+          const currCanvas = canvasRef.current;
+          if (!currCanvas) {
+            if (!frameLogged) console.log('[RAF] currCanvas gone');
+            return;
+          }
+          const currCtx = currCanvas.getContext('2d');
+          if (!currCtx) {
+            if (!frameLogged) console.log('[RAF] currCtx gone');
+            return;
+          }
+          frameLogged = true;
+          screencastBridge.markDrawn(frameCount);
+          currCanvas.width = img.width;
+          currCanvas.height = img.height;
           setCanvasSize({ width: img.width, height: img.height });
-          ctx.drawImage(img, 0, 0);
+          currCtx.drawImage(img, 0, 0);
+          if (!frameLogged) console.log(`[RAF] drew frame ${frameCount}, canvas=${currCanvas.width}x${currCanvas.height}`);
+        };
+        img.onerror = () => {
+          if (!frameLogged) console.warn('[RAF] img load error, frameData len:', frameData.length);
         };
         img.src = `data:image/jpeg;base64,${frameData}`;
       }
@@ -93,15 +123,6 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
     rafId = requestAnimationFrame(renderLoop);
     return () => cancelAnimationFrame(rafId);
   }, [deviceId, deviceWidth, deviceHeight]);
-
-  // Sync canvas size when device changes (before streaming)
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || streaming) return;
-    canvas.width = deviceWidth;
-    canvas.height = deviceHeight;
-    setCanvasSize({ width: deviceWidth, height: deviceHeight });
-  }, [deviceWidth, deviceHeight, streaming]);
 
   const startScreencast = useCallback(async () => {
     if (!deviceId || !window.electronAPI) return;
@@ -131,6 +152,7 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
     try {
       await window.electronAPI.invoke('cdp:screencast:stop', deviceId);
       setStreaming(false);
+      screencastBridge.reset();
     } catch (err) {
       console.error('Failed to stop screencast:', err);
     }
@@ -163,7 +185,7 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
       const rect = canvasRef.current.getBoundingClientRect();
       const x = Math.round((e.clientX - rect.left) * (canvasRef.current.width / rect.width));
       const y = Math.round((e.clientY - rect.top) * (canvasRef.current.height / rect.height));
-      window.electronAPI.invoke('cdp:input:scroll', deviceId, x, y, e.deltaX, e.deltaY);
+      window.electronAPI.invoke('cdp:input:scroll', deviceId, x, y, e.deltaX, e.deltaY).catch(() => {});
     },
     [deviceId],
   );
