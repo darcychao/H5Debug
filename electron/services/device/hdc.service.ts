@@ -58,6 +58,10 @@ export class HdcService {
     return this.run(['-t', deviceId, 'rport', `tcp:${remotePort}`, `tcp:${localPort}`]);
   }
 
+  async removeReverse(deviceId: string, remotePort: number): Promise<string> {
+    return this.run(['-t', deviceId, 'rport', '--remove', `tcp:${remotePort}`]);
+  }
+
   async install(deviceId: string, hapPath: string): Promise<string> {
     return this.run(['-t', deviceId, 'install', hapPath]);
   }
@@ -88,6 +92,101 @@ export class HdcService {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Find WebView processes on the device.
+   */
+  async listWebViewProcesses(deviceId: string): Promise<Array<{ pid: string; name: string; user: string }>> {
+    const patterns = [
+      "ps -A 2>/dev/null | grep -iE 'webview|wethost|chrome' | grep -v grep",
+      "ps -ef 2>/dev/null | grep -iE 'webview|wethost|chrome' | grep -v grep",
+      "ps 2>/dev/null | grep -iE 'webview|wethost' | grep -v grep",
+    ];
+    for (const cmd of patterns) {
+      try {
+        const output = await this.shell(deviceId, cmd);
+        const lines = output.split('\n').filter((l) => l.trim());
+        const processes = lines.map((line) => {
+          const parts = line.trim().split(/\s+/);
+          return {
+            user: parts[0] || '',
+            pid: parts[1] || parts[0] || '',
+            name: parts[parts.length - 1] || '',
+          };
+        }).filter((p) => p.pid && p.name && p.name.length > 0);
+        if (processes.length > 0) {
+          console.log(`[hdc] found ${processes.length} webview processes using cmd: ${cmd}`);
+          return processes;
+        }
+      } catch {
+        // try next pattern
+      }
+    }
+    console.log(`[hdc] no webview processes found with any pattern`);
+    return [];
+  }
+
+  /**
+   * Find all available WebView DevTools socket names on the device.
+   */
+  async listWebViewDevToolsSockets(deviceId: string): Promise<{ sockets: string[]; rawOutput: string }> {
+    try {
+      const output = await this.shell(deviceId, "cat /proc/net/unix | grep -i webview_devtools_remote");
+      const lines = output.split('\n').filter((l) => l.trim());
+      const sockets: string[] = [];
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        const path = parts[parts.length - 1];
+        if (path && (path.includes('webview_devtools_remote') || path.includes('chrome_devtools_remote'))) {
+          const socketName = path.startsWith('@') ? path.substring(1) : path;
+          sockets.push(socketName);
+        }
+      }
+      console.log(`[hdc] found ${sockets.length} devtools sockets: ${sockets.join(', ')}`);
+      return { sockets, rawOutput: output.substring(0, 500) };
+    } catch (err) {
+      return { sockets: [], rawOutput: String(err) };
+    }
+  }
+
+  /**
+   * Forward a localabstract socket for WebView DevTools.
+   */
+  async forwardWebViewDevTools(deviceId: string, webviewPid: string, localPort: number): Promise<string> {
+    const socketName = `webview_devtools_remote_${webviewPid}`;
+    return this.run(['-t', deviceId, 'fport', `localabstract:${socketName}`, `tcp:${localPort}`]);
+  }
+
+  /**
+   * Forward a localabstract socket by name.
+   * For SEQPACKET sockets, uses hdc reverse (reverse tunnel from device socket to host).
+   */
+  async forwardSocket(deviceId: string, socketName: string, localPort: number): Promise<number> {
+    // Try hdc reverse for seqpacket socket bridging
+    try {
+      console.log(`[hdc] trying hdc reverse localabstract:"${socketName}" tcp:${localPort}`);
+      await this.run(['-t', deviceId, 'rport', `localabstract:${socketName}`, `tcp:${localPort}`]);
+      console.log(`[hdc] hdc reverse succeeded`);
+      return localPort;
+    } catch (err) {
+      console.log(`[hdc] hdc reverse failed: ${err}`);
+    }
+    throw new Error(`hdc reverse failed for socket: ${socketName}`);
+  }
+
+  /**
+   * Query /json via HDC shell using curl/wget.
+   */
+  async queryJsonViaShell(deviceId: string, tcpPort: number): Promise<string> {
+    try {
+      const output = await this.shell(deviceId, `curl -s http://127.0.0.1:${tcpPort}/json 2>/dev/null || wget -q -O - http://127.0.0.1:${tcpPort}/json 2>/dev/null || echo "no http client"`);
+      console.log(`[hdc] /json via shell on port ${tcpPort}: ${output.substring(0, 200)}`);
+      return output;
+    } catch (err) {
+      console.log(`[hdc] /json via shell failed: ${err}`);
+      return '';
     }
   }
 }

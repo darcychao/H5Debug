@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { DeviceManager } from './services/device/device-manager';
 import { CdpPool } from './services/cdp/cdp-pool';
@@ -79,7 +79,7 @@ function createWindow() {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../index.html'));
   }
 
   mainWindow.on('closed', () => {
@@ -87,7 +87,7 @@ function createWindow() {
   });
 
   // Register IPC handlers
-  registerDeviceIpc(deviceManager, mainWindow);
+  registerDeviceIpc(deviceManager, cdpPool, mainWindow);
   registerCdpIpc(cdpPool, mainWindow);
   registerPackageIpc(packageManager);
   registerTestcaseIpc(testEngine, recorder, reportGenerator, mainWindow);

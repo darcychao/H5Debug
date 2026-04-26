@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ResizableSplit from '../components/resizable-split/ResizableSplit';
 import Tabs from '../components/pixel-ui/Tabs';
 import Button from '../components/pixel-ui/Button';
@@ -31,8 +31,34 @@ const MainLayout: React.FC = () => {
   const { theme, toggle } = useTheme();
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
   const [activeTestCase, setActiveTestCase] = useState<any>(null);
+  const [cdpDebug, setCdpDebug] = useState<string>('');
+  const [cdpTargets, setCdpTargets] = useState<string>('');
   const devices = useDeviceStore((s) => s.devices);
   const connectedCount = devices.filter((d) => d.status === 'connected').length;
+
+  // Debug: poll CDP pool status and targets
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    const id = setInterval(async () => {
+      try {
+        const status = await window.electronAPI.invoke('debug:cdpStatus') as any;
+        setCdpDebug(JSON.stringify(status?.clientIds ?? []));
+        // Find connected device port
+        const connected = devices.find((d) => d.status === 'connected' && d.cdpPort > 0);
+        if (connected) {
+          const result = await window.electronAPI.invoke('debug:listTargets', connected.cdpPort) as any;
+          setCdpTargets(JSON.stringify(result?.targets ?? []));
+        } else if (!connected) {
+          setCdpTargets('no connected device');
+        } else if (connected.cdpPort === 0) {
+          setCdpTargets('no cdp port');
+        }
+      } catch {
+        setCdpDebug('error');
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, []);
 
   const topArea = (
     <ResizableSplit direction="horizontal" initialRatio={0.65}>
@@ -114,6 +140,8 @@ const MainLayout: React.FC = () => {
       <footer className="main-footer">
         <span>Devices: {connectedCount}</span>
         <span>CDP: {activeDeviceId ? 'Active' : '--'}</span>
+        <span>CDP Pool: {cdpDebug || '--'}</span>
+        <span>Targets: {cdpTargets || '--'}</span>
         <span>Memory: --</span>
       </footer>
     </div>

@@ -21,9 +21,16 @@ export class CdpClient extends EventEmitter {
 
   async connect(wsUrl: string): Promise<void> {
     return new Promise((resolve, reject) => {
+      console.log(`[CdpClient] connecting to ${wsUrl}`);
+      const timeout = setTimeout(() => {
+        reject(new Error(`CDP connection timeout: ${wsUrl}`));
+      }, 10000);
+
       this.ws = new WebSocket(wsUrl);
 
       this.ws.on('open', () => {
+        clearTimeout(timeout);
+        console.log(`[CdpClient] connected to ${wsUrl}`);
         this._connected = true;
         this.emit('connected');
         resolve();
@@ -39,12 +46,16 @@ export class CdpClient extends EventEmitter {
       });
 
       this.ws.on('close', () => {
+        clearTimeout(timeout);
+        console.log(`[CdpClient] disconnected from ${wsUrl}`);
         this._connected = false;
         this.emit('disconnected');
         this.rejectAll(new Error('WebSocket closed'));
       });
 
       this.ws.on('error', (err) => {
+        clearTimeout(timeout);
+        console.error(`[CdpClient] error:`, err.message);
         this._connected = false;
         this.emit('error', err);
         reject(err);

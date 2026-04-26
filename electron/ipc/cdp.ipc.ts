@@ -3,6 +3,7 @@ import { CdpPool } from '../services/cdp/cdp-pool';
 
 export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
   ipcMain.handle('cdp:screencast:start', async (_event, deviceId: string, options?: Record<string, unknown>) => {
+    console.log(`[cdp:screencast:start] deviceId=${deviceId}, pool size=${cdpPool.getClientIds().length}, ids=${JSON.stringify(cdpPool.getClientIds())}`);
     const client = cdpPool.getClient(deviceId);
     if (!client) throw new Error(`No CDP client for device: ${deviceId}`);
     return client.send('Page.startScreencast', options || { format: 'jpeg', quality: 80, maxWidth: 720, maxHeight: 1280 });

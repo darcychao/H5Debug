@@ -24,6 +24,11 @@ export class PortForwardService {
     return this.portCounter++;
   }
 
+  /** Get next available local port without setting up forwarding */
+  getNextPort(): number {
+    return this.portCounter++;
+  }
+
   async setupForward(
     deviceId: string,
     deviceType: 'adb' | 'hdc',
@@ -82,12 +87,21 @@ export class PortForwardService {
       try {
         if (entry.type === 'forward') {
           await this.adb.removeForward(deviceId, entry.localPort);
+        } else if (entry.type === 'reverse') {
+          await this.adb.removeReverse(deviceId, entry.localPort);
         }
       } catch {
         // Best-effort cleanup
       }
     }
     this.forwards.delete(deviceId);
+  }
+
+  /** Add a reverse entry manually (for socket forwarding via adb reverse) */
+  addReverseEntry(deviceId: string, localPort: number): void {
+    const existing = this.forwards.get(deviceId) || [];
+    existing.push({ deviceId, type: 'reverse', localPort, remotePort: localPort });
+    this.forwards.set(deviceId, existing);
   }
 
   getForwards(deviceId: string): PortForwardEntry[] {

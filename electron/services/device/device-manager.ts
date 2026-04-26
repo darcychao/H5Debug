@@ -13,6 +13,8 @@ export interface DeviceInfo {
   cdpPort: number;
   status: 'connected' | 'disconnected' | 'connecting';
   lastActiveAt: number;
+  /** webview pid -> locally forwarded port */
+  webviewPorts?: Record<string, number>;
 }
 
 export class DeviceManager extends EventEmitter {
@@ -121,20 +123,51 @@ export class DeviceManager extends EventEmitter {
     if (info.status === 'connected') return info;
 
     info.status = 'connecting';
+    info.lastActiveAt = Date.now();
     this.emit('device:changed', info);
 
+    const service = deviceType === 'adb' ? this.adb : this.hdc;
+
     try {
+      // Set up browser port forwarding (chrome remote debugging port 9222)
       const cdpPort = await this.portForward.setupForward(deviceId, deviceType, 9222);
       info.cdpPort = cdpPort;
-      info.status = 'connected';
-      info.lastActiveAt = Date.now();
+      console.log(`[device:connect] browser cdpPort=${cdpPort}`);
+
+      // Try to get WebView targets via chrome://inspect JSON from device shell
+      const inspectPages = await service.getChromeInspectPages(deviceId);
+      console.log(`[device:connect] getChromeInspectPages found ${inspectPages.length} targets`);
+      const webviewPorts: Record<string, number> = {};
+      for (const page of inspectPages) {
+        if (page.webSocketDebuggerUrl) {
+          console.log(`[device:connect] WebView target: id=${page.id} title=${page.title} url=${page.webSocketDebuggerUrl}`);
+        }
+      }
+
+      // Also scan for webview_devtools_remote sockets as fallback
+      const socketsResult = await service.listWebViewDevToolsSockets(deviceId);
+      const sockets = socketsResult.sockets;
+      console.log(`[device:connect] found ${sockets.length} WebView devtools sockets`);
+      for (const socket of sockets) {
+        try {
+          const localPort = await this.portForward.getNextPort();
+          const actualPort = await service.forwardSocket(deviceId, socket, localPort);
+          webviewPorts[`socket:${socket}`] = actualPort;
+          // Track the reverse entry for cleanup
+          this.portForward.addReverseEntry(deviceId, actualPort);
+          console.log(`[device:connect] webview socket=${socket} -> local port=${actualPort}`);
+        } catch (err) {
+          console.log(`[device:connect] failed to forward socket=${socket}: ${err}`);
+        }
+      }
+
+      info.webviewPorts = webviewPorts;
     } catch (err) {
       info.status = 'disconnected';
       this.emit('device:changed', info);
       throw err;
     }
 
-    this.emit('device:changed', info);
     return info;
   }
 
@@ -145,6 +178,7 @@ export class DeviceManager extends EventEmitter {
 
     await this.portForward.removeForwards(deviceId);
     info.cdpPort = 0;
+    info.webviewPorts = {};
     info.status = 'disconnected';
     this.emit('device:changed', info);
   }
