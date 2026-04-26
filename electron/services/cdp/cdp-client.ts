@@ -38,7 +38,12 @@ export class CdpClient extends EventEmitter {
 
       this.ws.on('message', (data: WebSocket.Data) => {
         try {
-          const msg = JSON.parse(data.toString()) as CdpMessage;
+          const raw = data.toString();
+          const msg = JSON.parse(raw) as CdpMessage;
+          if (msg.method === 'Page.screencastFrame') {
+            console.log('[CdpClient] WS msg: id=', msg.id, 'method=', msg.method, 'paramsKeys=', msg.params ? Object.keys(msg.params) : 'none');
+            console.log('[CdpClient]   -> Page.screencastFrame: data length=', (msg.params as any)?.data?.length, 'metadata=', JSON.stringify((msg.params as any)?.metadata)?.substring(0, 100));
+          }
           this.handleMessage(msg);
         } catch (err) {
           console.error('Failed to parse CDP message:', err);
@@ -70,6 +75,7 @@ export class CdpClient extends EventEmitter {
 
     const id = ++this.msgId;
     const msg: CdpMessage = { id, method, params };
+    console.log(`[CdpClient] send: id=${id} method=${method}`);
 
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
@@ -93,6 +99,7 @@ export class CdpClient extends EventEmitter {
     if (msg.id && this.pending.has(msg.id)) {
       const { resolve, reject } = this.pending.get(msg.id)!;
       this.pending.delete(msg.id);
+      console.log(`[CdpClient] handleMessage: id=${msg.id} hasError=${!!msg.error} resultKeys=${msg.result ? Object.keys(msg.result as object) : 'none'}`);
       if (msg.error) {
         reject(new Error(`CDP error ${msg.error.code}: ${msg.error.message}`));
       } else {
@@ -103,6 +110,10 @@ export class CdpClient extends EventEmitter {
 
     // CDP event
     if (msg.method) {
+      if (msg.method === 'Page.screencastFrame') {
+        const p = msg.params as any;
+        console.log('[CdpClient] Page.screencastFrame event, hasData=', !!p?.data, 'dataLen=', p?.data?.length, 'sessionId=', p?.sessionId, 'metadata=', JSON.stringify(p?.metadata)?.substring(0, 100));
+      }
       this.emit('event', msg.method, msg.params);
       this.emit(msg.method, msg.params);
     }

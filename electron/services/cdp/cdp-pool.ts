@@ -40,6 +40,9 @@ export class CdpPool extends EventEmitter {
 
     // Forward client events to pool listeners
     client.on('event', (method: string, params: unknown) => {
+      if (method === 'Page.screencastFrame') {
+        console.log(`[CdpPool] forwarding Page.screencastFrame to IPC, params.data present=${!!(params as any)?.data}`);
+      }
       this.emit('event', deviceId, method, params);
     });
 

@@ -32,6 +32,9 @@ const portRange = (configManager.get('device.cdp_port_range') as [number, number
 
 const deviceManager = new DeviceManager(adbPath, hdcPath, portRange);
 const cdpPool = new CdpPool();
+
+// Expose deviceManager globally for reconnect logic in IPC handlers
+(global as any).__deviceManager = deviceManager;
 const adbService = new AdbService(adbPath);
 const hdcService = new HdcService(hdcPath);
 const packageManager = new PackageManager(adbService, hdcService);

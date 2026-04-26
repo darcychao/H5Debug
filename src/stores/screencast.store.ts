@@ -29,7 +29,10 @@ export const useScreencastStore = create<ScreencastState>((set) => ({
 
   setDeviceId: (id) => set({ deviceId: id }),
   setStreaming: (streaming) => set({ streaming }),
-  setFrameData: (data) => set({ frameData: data }),
+  setFrameData: (data) => {
+    console.log('[screencastStore] setFrameData called, len=', data?.length, 'current frameData len=', useScreencastStore.getState().frameData?.length);
+    set({ frameData: data });
+  },
   setQuality: (q) => set({ quality: q }),
   setMaxFps: (fps) => set({ maxFps: fps }),
   setFormat: (f) => set({ format: f }),

@@ -4,9 +4,50 @@ import { CdpPool } from '../services/cdp/cdp-pool';
 export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
   ipcMain.handle('cdp:screencast:start', async (_event, deviceId: string, options?: Record<string, unknown>) => {
     console.log(`[cdp:screencast:start] deviceId=${deviceId}, pool size=${cdpPool.getClientIds().length}, ids=${JSON.stringify(cdpPool.getClientIds())}`);
-    const client = cdpPool.getClient(deviceId);
-    if (!client) throw new Error(`No CDP client for device: ${deviceId}`);
-    return client.send('Page.startScreencast', options || { format: 'jpeg', quality: 80, maxWidth: 720, maxHeight: 1280 });
+    let client = cdpPool.getClient(deviceId);
+
+    // If client doesn't exist or is disconnected, try to reconnect
+    if (!client || !client.connected) {
+      console.log(`[cdp:screencast:start] client missing or disconnected, attempting reconnect...`);
+      try {
+        const deviceManager = (global as any).__deviceManager;
+        const info = deviceManager?.getDevice(deviceId);
+        if (!info || info.cdpPort === 0) {
+          throw new Error(`请先在设备列表中点击 "连接" 按钮连接设备 (Device not connected. Click "Connect" in the device list first.)`);
+        }
+        const allPorts: number[] = [];
+        if (info.cdpPort) allPorts.push(info.cdpPort);
+        if (info.webviewPorts) allPorts.push(...Object.values(info.webviewPorts));
+        console.log(`[cdp:screencast:start] reconnecting with ports: ${allPorts.join(',')}`);
+        client = await cdpPool.connect(deviceId, allPorts);
+        console.log(`[cdp:screencast:start] reconnect succeeded, connected=${client?.connected}`);
+      } catch (err) {
+        console.error(`[cdp:screencast:start] reconnect failed:`, err);
+        throw err;
+      }
+    }
+
+    if (!client || !client.connected) {
+      throw new Error(`设备连接失败，请重新连接设备 (CDP connection failed. Please reconnect the device.)`);
+    }
+
+    console.log(`[cdp:screencast:start] client connected=${client.connected}, calling Page.enable...`);
+    try {
+      const enableResult = await client.send('Page.enable');
+      console.log(`[cdp:screencast:start] Page.enable result:`, JSON.stringify(enableResult)?.substring(0, 100));
+    } catch (e) {
+      console.error(`[cdp:screencast:start] Page.enable FAILED:`, e);
+      throw e;
+    }
+    console.log(`[cdp:screencast:start] calling Page.startScreencast with options:`, options || { format: 'jpeg', quality: 80, maxWidth: 720, maxHeight: 1280 });
+    try {
+      const result = await client.send('Page.startScreencast', options || { format: 'jpeg', quality: 80, maxWidth: 720, maxHeight: 1280 });
+      console.log(`[cdp:screencast:start] Page.startScreencast SUCCESS, result:`, JSON.stringify(result)?.substring(0, 100));
+      return result;
+    } catch (e) {
+      console.error(`[cdp:screencast:start] Page.startScreencast FAILED:`, e);
+      throw e;
+    }
   });
 
   ipcMain.handle('cdp:screencast:stop', async (_event, deviceId: string) => {
@@ -55,6 +96,8 @@ export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
   // Forward CDP events to renderer
   cdpPool.on('event', (deviceId: string, method: string, params: unknown) => {
     if (method === 'Page.screencastFrame') {
+      const p = params as { data?: string; metadata?: unknown; sessionId?: string };
+      console.log(`[cdp:screencast:frame] deviceId=${deviceId}, hasData=${!!p?.data}, dataLen=${p?.data?.length}, sessionId=${p?.sessionId}`);
       mainWindow.webContents.send('cdp:screencast:frame', { deviceId, params });
     }
     if (method === 'Fetch.requestPaused') {
