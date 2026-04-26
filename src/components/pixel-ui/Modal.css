@@ -17,6 +17,7 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .pixel-modal-header {
@@ -51,8 +52,12 @@
 
 .pixel-modal-body {
   padding: var(--spacing-lg);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .pixel-modal-footer {

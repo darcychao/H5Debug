@@ -40,4 +40,5 @@
   flex: 1;
   overflow: auto;
   padding: var(--spacing-sm);
+  min-height: 0;
 }

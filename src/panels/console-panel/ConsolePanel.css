@@ -5,6 +5,7 @@
   font-family: var(--font-family);
   font-size: var(--font-size-xs);
   line-height: 1.6;
+  min-height: 0;
 }
 
 .console-line {

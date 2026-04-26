@@ -9,11 +9,12 @@ import { useTestcaseStore, TestCase, TestStep, StepType } from '../../stores/tes
 
 interface CaseDesignerProps {
   testCase: TestCase | null;
+  onCreateCase?: (tc: TestCase) => void;
 }
 
-const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase }) => {
+const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase }) => {
   const { t } = useTranslation();
-  const { updateTestCase, addStep, updateStep, deleteStep } = useTestcaseStore();
+  const { updateTestCase, addTestCase, addStep, updateStep, deleteStep } = useTestcaseStore();
   const [showStepEditor, setShowStepEditor] = useState(false);
   const [editingStep, setEditingStep] = useState<TestStep | null>(null);
   const [insertAfterIdx, setInsertAfterIdx] = useState(-1);
@@ -21,8 +22,25 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase }) => {
   if (!testCase) {
     return (
       <Card title={t('testcase.caseDesigner')}>
-        <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
-          {t('testcase.selectToDesign')}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-xl)', minHeight: 200 }}>
+          <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center' }}>
+            {t('testcase.selectToDesign')}
+          </div>
+          <Button size="md" variant="primary" onClick={() => {
+            const tc: TestCase = {
+              id: crypto.randomUUID(),
+              name: t('testcase.new'),
+              description: '',
+              author: '',
+              steps: [],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            };
+            addTestCase(tc);
+            onCreateCase?.(tc);
+          }}>
+            {t('testcase.new')}
+          </Button>
         </div>
       </Card>
     );
@@ -72,41 +90,45 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase }) => {
         </div>
       }
     >
-      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-sm)' }}>
-        {testCase.description}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-sm)' }}>
+            {testCase.description}
+          </div>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          {testCase.steps.length === 0 ? (
+            <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
+              {t('testcase.noStepsYet')}
+            </div>
+          ) : testCase.steps.map((step, idx) => (
+            <div
+              key={step.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--spacing-sm)',
+                padding: 'var(--spacing-xs) var(--spacing-sm)',
+                borderBottom: '1px solid var(--color-border)',
+                fontSize: 'var(--font-size-xs)',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ color: 'var(--color-text-muted)', minWidth: 20 }}>{idx + 1}.</span>
+              <span style={{
+                fontWeight: 600,
+                minWidth: 60,
+                color: step.type === 'branch' ? 'var(--color-accent-yellow)' : step.type === 'loop' ? 'var(--color-info)' : 'var(--color-accent)',
+              }}>
+                {stepTypeLabels[step.type]}
+              </span>
+              <span style={{ flex: 1 }}>{step.name || step.selector || t('testcase.noName')}</span>
+              <Button size="sm" variant="ghost" onClick={() => { setEditingStep({ ...step }); setShowStepEditor(true); }}>{t('network.edit')}</Button>
+              <Button size="sm" variant="ghost" onClick={() => deleteStep(testCase.id, step.id)}>{t('testcase.del')}</Button>
+            </div>
+          ))}
+        </div>
       </div>
-
-      {testCase.steps.map((step, idx) => (
-        <div
-          key={step.id}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--spacing-sm)',
-            padding: 'var(--spacing-xs) var(--spacing-sm)',
-            borderBottom: '1px solid var(--color-border)',
-            fontSize: 'var(--font-size-xs)',
-          }}
-        >
-          <span style={{ color: 'var(--color-text-muted)', minWidth: 20 }}>{idx + 1}.</span>
-          <span style={{
-            fontWeight: 600,
-            minWidth: 60,
-            color: step.type === 'branch' ? 'var(--color-accent-yellow)' : step.type === 'loop' ? 'var(--color-info)' : 'var(--color-accent)',
-          }}>
-            {stepTypeLabels[step.type]}
-          </span>
-          <span style={{ flex: 1 }}>{step.name || step.selector || t('testcase.noName')}</span>
-          <Button size="sm" variant="ghost" onClick={() => { setEditingStep({ ...step }); setShowStepEditor(true); }}>{t('network.edit')}</Button>
-          <Button size="sm" variant="ghost" onClick={() => deleteStep(testCase.id, step.id)}>{t('testcase.del')}</Button>
-        </div>
-      ))}
-
-      {testCase.steps.length === 0 && (
-        <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
-          {t('testcase.noStepsYet')}
-        </div>
-      )}
 
       <Modal
         open={showStepEditor}
@@ -127,6 +149,7 @@ const StepEditorForm: React.FC<{
   onChange: (step: TestStep) => void;
   allSteps: TestStep[];
 }> = ({ step, onChange, allSteps }) => {
+  const { t } = useTranslation();
   const update = (updates: Partial<TestStep>) => onChange({ ...step, ...updates });
 
   return (

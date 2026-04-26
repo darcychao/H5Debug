@@ -1,0 +1,171 @@
+{
+  "nav": {
+    "console": "Console",
+    "testcase": "TestCase",
+    "report": "Report",
+    "plugin": "Plugin",
+    "network": "Network",
+    "log": "Log",
+    "package": "Package",
+    "proxy": "Proxy",
+    "settings": "Settings"
+  },
+  "device": {
+    "title": "Device",
+    "adbDevices": "ADB Devices",
+    "hdcDevices": "HDC Devices",
+    "noAdbDevices": "No ADB devices",
+    "noHdcDevices": "No HDC devices",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "noDevice": "No device selected",
+    "type": "Type",
+    "model": "Model",
+    "osVersion": "OS Version",
+    "screen": "Screen",
+    "cdpPort": "CDP Port",
+    "status": "Status",
+    "lastActive": "Last Active",
+    "webviewPorts": "WebView Ports"
+  },
+  "settings": {
+    "title": "Settings",
+    "device": "Device",
+    "screencast": "Screencast",
+    "testCase": "Test Case",
+    "language": "Language",
+    "adbPath": "ADB Path",
+    "hdcPath": "HDC Path",
+    "autoConnect": "Auto Connect",
+    "format": "Format",
+    "quality": "Quality (1-100)",
+    "maxFps": "Max FPS",
+    "reportDir": "Report Dir",
+    "recordingDir": "Recording Dir",
+    "autoScreenshotOnFail": "Auto Screenshot on Fail",
+    "reset": "Reset",
+    "save": "Save"
+  },
+  "log": {
+    "allLevels": "All Levels",
+    "allSources": "All Sources",
+    "filterPlaceholder": "Filter logs..."
+  },
+  "network": {
+    "intercept": "Intercept",
+    "filterPlaceholder": "Filter URLs...",
+    "addRule": "+ Rule",
+    "clear": "Clear",
+    "noRequests": "No network requests captured",
+    "headers": "Headers",
+    "body": "Body",
+    "response": "Response",
+    "noBody": "(no body)",
+    "pending": "(pending)",
+    "interceptRules": "Intercept Rules",
+    "edit": "Edit",
+    "del": "Del",
+    "newRule": "New Intercept Rule",
+    "editRule": "Edit Rule",
+    "save": "Save",
+    "ruleName": "Rule Name",
+    "urlPattern": "URL Pattern (regex)",
+    "action": "Action",
+    "block": "Block",
+    "modify": "Modify",
+    "mock": "Mock",
+    "statusCode": "Status Code",
+    "responseBody": "Response Body"
+  },
+  "package": {
+    "title": "Packages",
+    "noDevice": "Connect a device to view packages",
+    "placeholder": "Package name or path...",
+    "install": "Install",
+    "uninstall": "Uninstall",
+    "clearCache": "Clear Cache"
+  },
+  "testcase": {
+    "title": "Test Cases",
+    "new": "+ New",
+    "addStep": "+ Step",
+    "noCases": "No test cases",
+    "steps": "steps",
+    "del": "Del",
+    "caseDesigner": "Case Designer",
+    "selectToDesign": "Select a test case to design",
+    "noStepsYet": "No steps yet. Click \"+ Step\" to add.",
+    "stepEditor": "Step Editor",
+    "save": "Save",
+    "stepName": "Step Name",
+    "description": "Description",
+    "type": "Type",
+    "click": "Click",
+    "input": "Input",
+    "screenshot": "Screenshot",
+    "branch": "Branch",
+    "loop": "Loop",
+    "selector": "Selector",
+    "inputValue": "Input Value",
+    "verifyValue": "Verify Value",
+    "conditionType": "Condition Type",
+    "elementExists": "Element Exists",
+    "elementNotExists": "Element Not Exists",
+    "conditionSelector": "Condition Selector",
+    "loopCount": "Loop Count",
+    "selectStepsToLoop": "Select steps to loop:",
+    "noName": "(no name)",
+    "execution": "Execution",
+    "selectToExecute": "Select a test case to execute",
+    "execute": "Execute",
+    "running": "Running...",
+    "batchExecute": "Batch Execute",
+    "results": "Results:",
+    "connectDeviceFirst": "Connect a device first to execute test cases"
+  },
+  "report": {
+    "title": "Test Reports",
+    "noReports": "No reports yet. Execute a test case to generate one."
+  },
+  "plugin": {
+    "title": "Plugins",
+    "noPlugins": "No plugins installed",
+    "uninstall": "Uninstall"
+  },
+  "proxy": {
+    "title": "Port Proxy",
+    "addRule": "Add Rule",
+    "noRules": "No proxy rules configured"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "close": "Close",
+    "error": "Error",
+    "success": "Success",
+    "loading": "Loading..."
+  },
+  "footer": {
+    "devices": "Devices",
+    "cdp": "CDP",
+    "cdpPool": "CDP Pool",
+    "targets": "Targets",
+    "memory": "Memory",
+    "active": "Active",
+    "noConnectedDevice": "no connected device",
+    "noCdpPort": "no cdp port"
+  },
+  "header": {
+    "noDevice": "No device",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "screencast": {
+    "startStream": "Start Stream",
+    "stopStream": "Stop Stream",
+    "screenshot": "Screenshot"
+  },
+  "console": {
+    "placeholder": "Enter JS expression..."
+  }
+}
