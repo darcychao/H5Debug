@@ -264,38 +264,32 @@ export class AdbService {
 
   /**
    * Forward a localabstract socket by name.
-   * Handles "browser_webview_devtools_remote_<pid>" (Chrome on Android).
    *
-   * SEQPACKET sockets (browser_webview_devtools_remote_*) cannot be forwarded
-   * via `adb forward localabstract:` — only stream sockets are supported.
-   *
-   * `adb reverse localabstract:` works because it creates a reverse tunnel
-   * (device→host) where the tunnel itself is TCP; the socket type is handled
-   * inside the tunnel by the OS. After reverse, the host connects WebSocket
-   * to localhost:<localPort>.
-   *
-   * If the provided localPort is already in use on the host, tries up to
-   * maxRetries consecutive ports until one succeeds.
+   * Correct format: adb forward tcp:LOCAL_PORT localabstract:SOCKET_NAME
+   * The remote (device) side connects to its abstract socket, so this works
+   * for both SOCK_STREAM and SOCK_SEQPACKET sockets.
    */
-  async forwardSocket(deviceId: string, socketName: string, localPort: number, maxRetries = 5): Promise<number> {
-    let port = localPort;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  async forwardSocket(deviceId: string, socketName: string, localPort: number): Promise<number> {
+    const maxRetries = 10;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const port = localPort + attempt;
+
+      // adb forward tcp:LOCAL localabstract:SOCKET — remote side connects to socket
       try {
-        console.log(`[adb] trying adb reverse localabstract:"${socketName}" tcp:${port} (attempt ${attempt})`);
-        await this.run(['-s', deviceId, 'reverse', `localabstract:${socketName}`, `tcp:${port}`]);
-        console.log(`[adb] adb reverse succeeded on port ${port}`);
+        console.log(`[adb] trying adb forward tcp:${port} localabstract:"${socketName}"`);
+        await this.run(['-s', deviceId, 'forward', `tcp:${port}`, `localabstract:${socketName}`]);
+        console.log(`[adb] adb forward succeeded on port ${port}`);
         return port;
       } catch (err) {
         const errStr = String(err);
         if (errStr.includes('Address already in use') || errStr.includes('already in use')) {
-          console.log(`[adb] port ${port} in use, trying next port`);
-          port++;
+          console.log(`[adb] port ${port} in use, trying next`);
           continue;
         }
-        console.log(`[adb] adb reverse failed: ${err}`);
-        throw err;
+        console.log(`[adb] adb forward failed: ${err}`);
       }
     }
-    throw new Error(`adb reverse failed for socket: ${socketName} after ${maxRetries} retries`);
+
+    throw new Error(`adb forward failed for socket: ${socketName} after ${maxRetries} retries`);
   }
 }

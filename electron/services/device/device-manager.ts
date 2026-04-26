@@ -153,8 +153,8 @@ export class DeviceManager extends EventEmitter {
           const localPort = await this.portForward.getNextPort();
           const actualPort = await service.forwardSocket(deviceId, socket, localPort);
           webviewPorts[`socket:${socket}`] = actualPort;
-          // Track the reverse entry for cleanup
-          this.portForward.addReverseEntry(deviceId, actualPort);
+          // Track for cleanup — forwardSocket uses 'forward' type for localabstract
+          this.portForward.addForwardEntry(deviceId, actualPort, actualPort);
           console.log(`[device:connect] webview socket=${socket} -> local port=${actualPort}`);
         } catch (err) {
           console.log(`[device:connect] failed to forward socket=${socket}: ${err}`);

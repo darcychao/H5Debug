@@ -97,6 +97,13 @@ export class PortForwardService {
     this.forwards.delete(deviceId);
   }
 
+  /** Add a forward entry manually (for socket forwarding via adb forward) */
+  addForwardEntry(deviceId: string, localPort: number, remotePort: number): void {
+    const existing = this.forwards.get(deviceId) || [];
+    existing.push({ deviceId, type: 'forward', localPort, remotePort });
+    this.forwards.set(deviceId, existing);
+  }
+
   /** Add a reverse entry manually (for socket forwarding via adb reverse) */
   addReverseEntry(deviceId: string, localPort: number): void {
     const existing = this.forwards.get(deviceId) || [];

@@ -161,19 +161,18 @@ export class HdcService {
 
   /**
    * Forward a localabstract socket by name.
-   * For SEQPACKET sockets, uses hdc reverse (reverse tunnel from device socket to host).
+   * Format: hdc fport tcp:LOCAL_PORT localabstract:SOCKET_NAME
    */
   async forwardSocket(deviceId: string, socketName: string, localPort: number): Promise<number> {
-    // Try hdc reverse for seqpacket socket bridging
     try {
-      console.log(`[hdc] trying hdc reverse localabstract:"${socketName}" tcp:${localPort}`);
-      await this.run(['-t', deviceId, 'rport', `localabstract:${socketName}`, `tcp:${localPort}`]);
-      console.log(`[hdc] hdc reverse succeeded`);
+      console.log(`[hdc] trying hdc fport tcp:${localPort} localabstract:"${socketName}"`);
+      await this.run(['-t', deviceId, 'fport', `tcp:${localPort}`, `localabstract:${socketName}`]);
+      console.log(`[hdc] hdc fport succeeded on port ${localPort}`);
       return localPort;
     } catch (err) {
-      console.log(`[hdc] hdc reverse failed: ${err}`);
+      console.log(`[hdc] hdc fport failed: ${err}`);
     }
-    throw new Error(`hdc reverse failed for socket: ${socketName}`);
+    throw new Error(`hdc fport failed for socket: ${socketName}`);
   }
 
   /**
