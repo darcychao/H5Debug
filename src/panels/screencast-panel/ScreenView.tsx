@@ -12,7 +12,7 @@ interface ScreenViewProps {
 const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const { streaming, setStreaming, setFrameData, zoom, setZoom } = useScreencastStore();
+  const { streaming, setStreaming, zoom, setZoom } = useScreencastStore();
   const [canvasSize, setCanvasSize] = useState({ width: 360, height: 640 });
   const [streamError, setStreamError] = useState<string | null>(null);
   const devices = useDeviceStore((s) => s.devices);
@@ -22,32 +22,40 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
   const deviceWidth = deviceInfo?.screenWidth || 360;
   const deviceHeight = deviceInfo?.screenHeight || 640;
 
-  // Handle incoming screencast frame data
+  // Refs for RAF loop - no React state involved
+  const latestFrameRef = useRef<string | null>(null);
+  const frameCountRef = useRef(0);
+  const drawnCountRef = useRef(0);
+  const streamingRef = useRef(false);
+  streamingRef.current = streaming;
+
+  // Handle incoming screencast frame data - update ref + counter
   const handleFrame = useCallback((args: any) => {
-    // args = { deviceId, params } from IPC
-    const params = args?.params;
-    const data = params?.data;
-    console.log('[ScreenView] IPC frame: args=', JSON.stringify(args)?.substring(0, 100));
-    console.log('[ScreenView] frame: data present=', !!data, 'len=', data?.length, 'paramsKeys=', params ? Object.keys(params) : 'none');
+    const data = args?.params?.data;
     if (data) {
-      setFrameData(data);
+      latestFrameRef.current = data;
+      frameCountRef.current++;
     }
-  }, [setFrameData]);
+  }, []);
 
   useCdpEvent('cdp:screencast:frame', handleFrame);
 
-  // Render frame data to canvas - re-renders when frameData changes via useEffect
+  // RAF render loop - every new frame is drawn exactly once, in order
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const render = () => {
-      const { streaming: isStreaming, frameData } = useScreencastStore.getState();
+    let rafId: number;
+
+    const renderLoop = () => {
+      const frameData = latestFrameRef.current;
+      const frameCount = frameCountRef.current;
+      const drawnCount = drawnCountRef.current;
+      const isStreaming = streamingRef.current;
 
       if (!isStreaming || !deviceId) {
-        // Draw placeholder at device resolution
         canvas.width = deviceWidth;
         canvas.height = deviceHeight;
         ctx.fillStyle = '#1a1a2e';
@@ -60,36 +68,31 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
           canvas.width / 2,
           canvas.height / 2,
         );
+        rafId = requestAnimationFrame(renderLoop);
         return;
       }
 
-      if (!frameData) return;
+      // Only draw if there's a new frame we haven't drawn yet
+      if (frameData && frameCount > drawnCount) {
+        const img = new Image();
+        img.onload = () => {
+          // Only draw if this frame hasn't been superseded
+          if (drawnCountRef.current >= frameCount) return;
+          drawnCountRef.current = frameCount;
+          canvas.width = img.width;
+          canvas.height = img.height;
+          setCanvasSize({ width: img.width, height: img.height });
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = `data:image/jpeg;base64,${frameData}`;
+      }
 
-      const img = new Image();
-      img.onload = () => {
-        console.log('[ScreenView] rendering frame', img.width, 'x', img.height);
-        canvas.width = img.width;
-        canvas.height = img.height;
-        setCanvasSize({ width: img.width, height: img.height });
-        ctx.drawImage(img, 0, 0);
-      };
-      img.onerror = () => {
-        console.error('[ScreenView] image load error, data length:', frameData.length);
-      };
-      img.src = `data:image/jpeg;base64,${frameData}`;
+      rafId = requestAnimationFrame(renderLoop);
     };
 
-    render();
-
-    // Subscribe to entire store and re-render on any change
-    const unsubscribe = useScreencastStore.subscribe(() => {
-      const { frameData } = useScreencastStore.getState();
-      console.log('[ScreenView] store changed, frameData len=', frameData?.length);
-      render();
-    });
-
-    return unsubscribe;
-  }, [deviceId, streaming, deviceWidth, deviceHeight]);
+    rafId = requestAnimationFrame(renderLoop);
+    return () => cancelAnimationFrame(rafId);
+  }, [deviceId, deviceWidth, deviceHeight]);
 
   // Sync canvas size when device changes (before streaming)
   useEffect(() => {

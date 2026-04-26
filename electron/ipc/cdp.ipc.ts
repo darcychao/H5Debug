@@ -97,8 +97,17 @@ export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
   cdpPool.on('event', (deviceId: string, method: string, params: unknown) => {
     if (method === 'Page.screencastFrame') {
       const p = params as { data?: string; metadata?: unknown; sessionId?: string };
-      console.log(`[cdp:screencast:frame] deviceId=${deviceId}, hasData=${!!p?.data}, dataLen=${p?.data?.length}, sessionId=${p?.sessionId}`);
-      mainWindow.webContents.send('cdp:screencast:frame', { deviceId, params });
+      console.log(`[IPC send] cdp:screencast:frame -> renderer, deviceId=${deviceId}, hasData=${!!p?.data}, dataLen=${p?.data?.length}`);
+      try {
+        mainWindow.webContents.send('cdp:screencast:frame', { deviceId, params });
+      } catch (e) {
+        console.error(`[IPC send] webContents.send failed:`, e);
+      }
+      // Ack the frame to allow Chrome to send the next one
+      const client = cdpPool.getClient(deviceId);
+      if (client && p.sessionId !== undefined) {
+        client.send('Page.screencastFrameAck', { sessionId: p.sessionId }).catch(() => {});
+      }
     }
     if (method === 'Fetch.requestPaused') {
       mainWindow.webContents.send('cdp:network:request', { deviceId, params });
