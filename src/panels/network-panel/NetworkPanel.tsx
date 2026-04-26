@@ -172,6 +172,7 @@ const InterceptRuleEditor: React.FC<{
   rule: InterceptRule | null;
   onChange: (rule: InterceptRule) => void;
 }> = ({ rule, onChange }) => {
+  const { t } = useTranslation();
   const current = rule || {
     id: crypto.randomUUID(),
     name: '',

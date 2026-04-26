@@ -99,6 +99,11 @@ export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
       const p = params as { data?: string; metadata?: unknown; sessionId?: string };
       try {
         mainWindow.webContents.send('cdp:screencast:frame', { deviceId, params });
+        if (p.data) {
+          console.log('[IPC send] cdp:screencast:frame -> renderer, hasData=true, dataLen=', p.data.length, 'vis=', document.visibilityState);
+        } else {
+          console.log('[IPC send] cdp:screencast:frame -> renderer, hasData=false');
+        }
       } catch (e) {
         // Window might be closing
       }

@@ -39,19 +39,17 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
   // This prevents the placeholder from flashing over real content during tab switches.
   useEffect(() => {
     let rafId: number;
-    let frameLogged = false;
+    let lastLoggedFrame = 0;
 
     const renderLoop = () => {
       // Always read canvas fresh from ref
       const canvas = canvasRef.current;
       if (!canvas) {
-        if (!frameLogged) console.log('[RAF] no canvas');
         rafId = requestAnimationFrame(renderLoop);
         return;
       }
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        if (!frameLogged) console.log('[RAF] no ctx');
         rafId = requestAnimationFrame(renderLoop);
         return;
       }
@@ -59,11 +57,11 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
       const frameData = screencastBridge.getLatestFrame();
       const { frameCount, drawnCount } = screencastBridge.getCounts();
       const isStreaming = streamingRef.current;
-      frameLogged = false;
 
-      // Log every 60 frames to track state during tab switches
-      if (frameCount > 0 && frameCount % 60 === 0) {
-        console.log(`[RAF] frames=${frameCount} drawn=${drawnCount} streaming=${isStreaming} hasData=${!!frameData} canvas=${canvas.width}x${canvas.height} vis=${document.visibilityState}`);
+      // Log every 30 frames AND on state changes
+      if (frameCount !== lastLoggedFrame) {
+        lastLoggedFrame = frameCount;
+        console.log(`[RAF] tick frames=${frameCount} drawn=${drawnCount} streaming=${isStreaming} hasData=${!!frameData} canvas=${canvas.width}x${canvas.height} ctxOk=${!!ctx} vis=${document.visibilityState}`);
       }
 
       // Only show placeholder if we have no frame data at all AND no device or not streaming
@@ -87,32 +85,24 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
 
       // Draw new frames
       if (frameCount > drawnCount) {
+        console.log(`[RAF] DRAWING frame=${frameCount} drawn=${drawnCount} dataLen=${frameData.length}`);
         const img = new Image();
         img.onload = () => {
-          if (!img.complete || img.naturalWidth === 0) {
-            if (!frameLogged) console.log('[RAF] img incomplete');
-            return;
-          }
           const currCanvas = canvasRef.current;
-          if (!currCanvas) {
-            if (!frameLogged) console.log('[RAF] currCanvas gone');
-            return;
-          }
+          if (!currCanvas) { console.log('[RAF:img] currCanvas gone'); return; }
           const currCtx = currCanvas.getContext('2d');
-          if (!currCtx) {
-            if (!frameLogged) console.log('[RAF] currCtx gone');
-            return;
-          }
-          frameLogged = true;
+          if (!currCtx) { console.log('[RAF:img] currCtx gone'); return; }
+          if (!img.complete || img.naturalWidth === 0) { console.log('[RAF:img] incomplete'); return; }
+          console.log(`[RAF:img] loaded w=${img.width} h=${img.height}, drawing to canvas`);
           screencastBridge.markDrawn(frameCount);
           currCanvas.width = img.width;
           currCanvas.height = img.height;
           setCanvasSize({ width: img.width, height: img.height });
           currCtx.drawImage(img, 0, 0);
-          if (!frameLogged) console.log(`[RAF] drew frame ${frameCount}, canvas=${currCanvas.width}x${currCanvas.height}`);
+          console.log(`[RAF:img] drew OK, canvas now ${currCanvas.width}x${currCanvas.height}`);
         };
         img.onerror = () => {
-          if (!frameLogged) console.warn('[RAF] img load error, frameData len:', frameData.length);
+          console.warn('[RAF:img] load error');
         };
         img.src = `data:image/jpeg;base64,${frameData}`;
       }
