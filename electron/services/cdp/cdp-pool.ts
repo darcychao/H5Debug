@@ -87,9 +87,10 @@ export class CdpPool extends EventEmitter {
 
   /**
    * Test if CDP commands work on a given WebSocket URL.
-   * Sends HTTP upgrade + WebSocket frame to verify CDP is accessible.
+   * Uses Target.getTargets (browser-safe) to discover page targets.
+   * Returns a page-level WebSocket URL if found, otherwise the original URL.
    */
-  private testCdpConnection(wsUrl: string): Promise<void> {
+  private testCdpConnection(wsUrl: string): Promise<string> {
     return new Promise((resolve, reject) => {
       console.log(`[CdpPool] testCdpConnection: attempting ${wsUrl}`);
       const ws = new (require('ws'))(wsUrl);
@@ -107,20 +108,50 @@ export class CdpPool extends EventEmitter {
       }, 5000);
 
       ws.on('open', () => {
-        console.log(`[CdpPool] WebSocket open, sending Page.enable`);
-        ws.send(JSON.stringify({ id: 1, method: 'Page.enable', params: {} }));
+        console.log(`[CdpPool] WebSocket open, sending Target.getTargets`);
+        ws.send(JSON.stringify({ id: 1, method: 'Target.getTargets', params: {} }));
       });
 
       ws.on('message', (data: Buffer) => {
         try {
           const msg = JSON.parse(data.toString());
-          console.log(`[CdpPool] CDP test received: id=${msg.id} method=${msg.method} result=${JSON.stringify(msg.result)?.substring(0, 100)}`);
+          console.log(`[CdpPool] CDP test received: id=${msg.id} method=${msg.method} result=${JSON.stringify(msg.result)?.substring(0, 200)}`);
           clearTimeout(timeout);
           resolved = true;
           ws.close();
-          resolve();
+
+          if (msg.error) {
+            console.log(`[CdpPool] Target.getTargets error: ${msg.error.message}, falling back to ${wsUrl}`);
+            resolve(wsUrl);
+            return;
+          }
+
+          // Discover page targets from browser connection
+          const targetInfos = (msg.result as any)?.targetInfos;
+          if (Array.isArray(targetInfos)) {
+            const pageTarget = targetInfos.find((t: any) => t.type === 'page' && t.targetId);
+            if (pageTarget) {
+              // Prefer webSocketDebuggerUrl if available
+              if (pageTarget.webSocketDebuggerUrl) {
+                console.log(`[CdpPool] Found page target, using: ${pageTarget.webSocketDebuggerUrl}`);
+                resolve(pageTarget.webSocketDebuggerUrl);
+                return;
+              }
+              // Construct page target URL from browser URL
+              const portMatch = wsUrl.match(/:(\d+)\//);
+              const port = portMatch ? portMatch[1] : '';
+              const pageUrl = `ws://127.0.0.1:${port}/devtools/page/${pageTarget.targetId}`;
+              console.log(`[CdpPool] Found page target via Target.getTargets, using: ${pageUrl}`);
+              resolve(pageUrl);
+              return;
+            }
+          }
+
+          console.log(`[CdpPool] No page targets found, falling back to ${wsUrl}`);
+          resolve(wsUrl);
         } catch (e) {
           console.log(`[CdpPool] CDP test parse error: ${e}`);
+          resolve(wsUrl);
         }
       });
 
