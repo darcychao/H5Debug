@@ -176,7 +176,10 @@
   "screencast": {
     "startStream": "Start Stream",
     "stopStream": "Stop Stream",
-    "screenshot": "Screenshot"
+    "screenshot": "Screenshot",
+    "selectTarget": "Select WebView",
+    "noTargets": "No targets available",
+    "switchingTarget": "Switching..."
   },
   "console": {
     "placeholder": "Enter JS expression..."

@@ -57,7 +57,11 @@ export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
   });
 
   ipcMain.handle('cdp:screencast:stop', async (_event, deviceId: string) => {
-    return sendWithReconnect(deviceId, 'Page.stopScreencast');
+    try {
+      return await sendWithReconnect(deviceId, 'Page.stopScreencast');
+    } catch {
+      return null;
+    }
   });
 
   ipcMain.handle('cdp:input:click', async (_event, deviceId: string, x: number, y: number) => {
@@ -112,6 +116,27 @@ export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
       expression: `(()=>{const els=document.querySelectorAll('*');const r=[];for(let i=0;i<els.length&&r.length<500;i++){const el=els[i];r.push({tagName:el.tagName,id:el.id,className:el.className,text:el.textContent?.trim().slice(0,80)||''});}return r;})()`,
       returnByValue: true,
     });
+  });
+
+  // List all available CDP targets for a device
+  ipcMain.handle('cdp:listTargets', async (_event, deviceId: string) => {
+    const deviceManager = (global as any).__deviceManager;
+    const info = deviceManager?.getDevice(deviceId);
+    if (!info) return [];
+    const allPorts: number[] = [];
+    if (info.cdpPort) allPorts.push(info.cdpPort);
+    if (info.webviewPorts) allPorts.push(...Object.values(info.webviewPorts));
+    return cdpPool.listTargets(allPorts);
+  });
+
+  // Switch to a specific CDP target by its webSocketDebuggerUrl
+  ipcMain.handle('cdp:selectTarget', async (_event, deviceId: string, wsUrl: string) => {
+    console.log(`[cdp:selectTarget] switching ${deviceId} to ${wsUrl}`);
+    // Stop screencast on current target before switching
+    try { await sendWithReconnect(deviceId, 'Page.stopScreencast'); } catch {}
+    // Disconnect and reconnect to the specified target
+    await cdpPool.disconnect(deviceId);
+    return cdpPool.connect(deviceId, [], wsUrl);
   });
 
   // Forward CDP events to renderer

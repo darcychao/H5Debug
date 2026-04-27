@@ -176,7 +176,10 @@
   "screencast": {
     "startStream": "开始推流",
     "stopStream": "停止推流",
-    "screenshot": "截图"
+    "screenshot": "截图",
+    "selectTarget": "选择 WebView",
+    "noTargets": "无可用目标",
+    "switchingTarget": "切换中..."
   },
   "console": {
     "placeholder": "输入 JS 表达式..."

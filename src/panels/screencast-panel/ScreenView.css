@@ -31,6 +31,25 @@
   accent-color: var(--color-accent);
 }
 
+.target-selector {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: 2px 4px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.target-selector:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .screen-canvas-wrapper {
   flex: 1;
   display: flex;

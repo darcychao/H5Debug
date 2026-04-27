@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xxd \"M:\\\\Softwares\\\\H5DebugGit\\\\H5Debug\\\\src\\\\panels\\\\screencast-panel\\\\ScreenView.tsx\")",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(node *)"
+    ]
+  }
+}

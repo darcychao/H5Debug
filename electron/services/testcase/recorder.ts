@@ -13,7 +13,7 @@ export class Recorder extends EventEmitter {
     this.steps = [];
 
     await client.send('DOM.enable');
-    await client.send('Page.enable');
+    try { await client.send('Page.enable'); } catch {}
 
     // Listen for user interactions by intercepting CDP events
     client.on('Input.dispatchMouseEvent', (params: any) => {

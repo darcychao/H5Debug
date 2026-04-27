@@ -77,7 +77,7 @@ export class TestEngine {
 
     // Enable required domains
     await client.send('Runtime.enable');
-    await client.send('Page.enable');
+    try { await client.send('Page.enable'); } catch {}
 
     // Execute steps
     for (let i = startIdx; i < testCase.steps.length; i++) {

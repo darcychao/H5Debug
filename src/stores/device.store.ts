@@ -10,12 +10,24 @@ export interface DeviceInfo {
   cdpPort: number;
   status: 'connected' | 'disconnected' | 'connecting';
   lastActiveAt: number;
+  webviewPorts?: Record<string, number>;
+}
+
+export interface CdpTarget {
+  id: string;
+  type: string;
+  title: string;
+  url: string;
+  webSocketDebuggerUrl: string;
+  port: number;
 }
 
 interface DeviceState {
   devices: DeviceInfo[];
   activeDeviceId: string | null;
   loading: boolean;
+  targets: CdpTarget[];
+  activeTargetId: string | null;
 
   setDevices: (devices: DeviceInfo[]) => void;
   updateDevice: (device: Partial<DeviceInfo> & { id: string; type: 'adb' | 'hdc' }) => void;
@@ -24,12 +36,17 @@ interface DeviceState {
   fetchDevices: () => Promise<void>;
   connectDevice: (deviceId: string, type: 'adb' | 'hdc') => Promise<void>;
   disconnectDevice: (deviceId: string, type: 'adb' | 'hdc') => Promise<void>;
+  fetchTargets: (deviceId: string) => Promise<void>;
+  selectTarget: (deviceId: string, targetId: string, wsUrl: string) => Promise<void>;
+  setActiveTargetId: (id: string | null) => void;
 }
 
 export const useDeviceStore = create<DeviceState>((set, get) => ({
   devices: [],
   activeDeviceId: null,
   loading: false,
+  targets: [],
+  activeTargetId: null,
 
   setDevices: (devices) => set({ devices }),
 
@@ -40,7 +57,7 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
       ),
     })),
 
-  setActiveDeviceId: (id) => set({ activeDeviceId: id }),
+  setActiveDeviceId: (id) => set({ activeDeviceId: id, targets: [], activeTargetId: null }),
 
   setLoading: (loading) => set({ loading }),
 
@@ -74,4 +91,25 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
       console.error('Failed to disconnect device:', err);
     }
   },
+
+  fetchTargets: async (deviceId) => {
+    try {
+      const targets = (await window.electronAPI?.invoke('cdp:listTargets', deviceId)) as CdpTarget[];
+      set({ targets: targets || [] });
+    } catch (err) {
+      console.error('Failed to fetch targets:', err);
+      set({ targets: [] });
+    }
+  },
+
+  selectTarget: async (deviceId, targetId, wsUrl) => {
+    try {
+      set({ activeTargetId: targetId });
+      await window.electronAPI?.invoke('cdp:selectTarget', deviceId, wsUrl);
+    } catch (err) {
+      console.error('Failed to select target:', err);
+    }
+  },
+
+  setActiveTargetId: (id) => set({ activeTargetId: id }),
 }));

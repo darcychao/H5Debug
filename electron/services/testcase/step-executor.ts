@@ -111,7 +111,7 @@ export class StepExecutor {
   }
 
   private async executeScreenshot(step: TestStep, startTime: number): Promise<StepResult> {
-    const result = await this.client.send('Page.captureScreenshot', { format: 'png' });
+    const result = await this.client.send('Page.captureScreenshot', { format: 'png' }).catch(() => null);
     return {
       stepId: step.id,
       status: 'passed',

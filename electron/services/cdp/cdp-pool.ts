@@ -179,6 +179,25 @@ export class CdpPool extends EventEmitter {
     });
   }
 
+  /**
+   * List all available CDP targets across the given ports.
+   * Returns an array of target descriptors with their port of origin.
+   */
+  async listTargets(ports: number[]): Promise<Array<{ port: number; id: string; type: string; title: string; url: string; webSocketDebuggerUrl: string }>> {
+    const allTargets: Array<{ port: number; id: string; type: string; title: string; url: string; webSocketDebuggerUrl: string }> = [];
+    for (const port of ports) {
+      try {
+        const targets = await this.queryAllTargets(port);
+        for (const t of targets) {
+          allTargets.push({ port, ...t });
+        }
+      } catch {
+        // skip unreachable ports
+      }
+    }
+    return allTargets;
+  }
+
   getClient(deviceId: string): CdpClient | undefined {
     return this.clients.get(deviceId);
   }
@@ -213,6 +232,36 @@ export class CdpPool extends EventEmitter {
     }
     // No page target found on any port
     throw new Error(`No CDP connection found on any port. Tried: ${ports.join(', ')}. Make sure Chrome/WebView has DevTools debugging enabled.`);
+  }
+
+  private queryAllTargets(port: number): Promise<Array<{ id: string; type: string; title: string; url: string; webSocketDebuggerUrl: string }>> {
+    return new Promise((resolve) => {
+      const req = http.get(`http://127.0.0.1:${port}/json`, (res: any) => {
+        let data = '';
+        res.on('data', (chunk: Buffer) => (data += chunk));
+        res.on('end', () => {
+          if (!data) { resolve([]); return; }
+          try {
+            const targets = JSON.parse(data);
+            if (!Array.isArray(targets)) { resolve([]); return; }
+            const result = targets
+              .filter((t: any) => t.webSocketDebuggerUrl)
+              .map((t: any) => ({
+                id: t.id || '',
+                type: t.type || 'page',
+                title: t.title || '',
+                url: t.url || '',
+                webSocketDebuggerUrl: t.webSocketDebuggerUrl,
+              }));
+            resolve(result);
+          } catch {
+            resolve([]);
+          }
+        });
+      });
+      req.on('error', () => resolve([]));
+      req.setTimeout(5000, () => { req.destroy(); resolve([]); });
+    });
   }
 
   private queryJson(port: number): Promise<string> {

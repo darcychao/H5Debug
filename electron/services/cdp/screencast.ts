@@ -15,12 +15,12 @@ export class ScreencastService {
       maxWidth: options?.maxWidth || 720,
       maxHeight: options?.maxHeight || 1280,
     };
-    await this.client.send('Page.enable');
+    try { await this.client.send('Page.enable'); } catch {}
     await this.client.send('Page.startScreencast', params);
   }
 
   async stop(): Promise<void> {
-    await this.client.send('Page.stopScreencast');
+    try { await this.client.send('Page.stopScreencast'); } catch {}
   }
 
   onFrame(callback: (data: string, metadata: { timestamp: number; sessionId: string }) => void): () => void {
@@ -37,7 +37,7 @@ export class ScreencastService {
   }
 
   async acknowledgeFrame(sessionId: string): Promise<void> {
-    await this.client.send('Page.screencastFrameAck', { sessionId });
+    try { await this.client.send('Page.screencastFrameAck', { sessionId }); } catch {}
   }
 
   async captureScreenshot(): Promise<string> {

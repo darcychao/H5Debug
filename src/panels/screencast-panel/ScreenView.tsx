@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useScreencastStore } from '../../stores/screencast.store';
 import { useDeviceStore } from '../../stores/device.store';
 import { screencastBridge } from '../../services/screencast-bridge';
@@ -10,12 +11,15 @@ interface ScreenViewProps {
 }
 
 const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { streaming, setStreaming, zoom, setZoom } = useScreencastStore();
   const [canvasSize, setCanvasSize] = useState({ width: 360, height: 640 });
   const [streamError, setStreamError] = useState<string | null>(null);
   const devices = useDeviceStore((s) => s.devices);
+  const { targets, activeTargetId, fetchTargets, selectTarget, setActiveTargetId } = useDeviceStore();
+  const [switching, setSwitching] = useState(false);
 
   // Get device info for initial canvas sizing
   const deviceInfo = deviceId ? devices.find((d) => `${d.type}:${d.id}` === deviceId) : null;
@@ -25,6 +29,22 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
   // Keep streamingRef in sync — used by RAF loop which runs outside React's lifecycle
   const streamingRef = useRef(streaming);
   streamingRef.current = streaming;
+
+  // Fetch targets when device connects
+  useEffect(() => {
+    if (deviceId) {
+      fetchTargets(deviceId);
+    }
+  }, [deviceId]);
+
+  // Auto-detect current target after fetching targets
+  useEffect(() => {
+    if (targets.length > 0 && !activeTargetId) {
+      // Default to first page target, or first target
+      const pageTarget = targets.find((t) => t.type === 'page') || targets[0];
+      setActiveTargetId(pageTarget.id);
+    }
+  }, [targets, activeTargetId]);
 
   // Track visibility for debugging tab switch issues
   useEffect(() => {
@@ -132,7 +152,7 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
       console.error('[ScreenView] startScreencast failed:', err);
       const msg = err?.message || String(err);
       // Extract Chinese part of the error message if present
-      const cnMatch = msg.match(/[\u4e00-\u9fa5].*?[\u4e00-\u9fa5]/);
+      const cnMatch = msg.match(/[一-龥].*?[一-龥]/);
       setStreamError(cnMatch ? cnMatch[0] : msg);
     }
   }, [deviceId, setStreaming, deviceWidth, deviceHeight]);
@@ -180,24 +200,81 @@ const ScreenView: React.FC<ScreenViewProps> = ({ deviceId }) => {
     [deviceId],
   );
 
+  const handleTargetChange = useCallback(
+    async (e: React.ChangeEvent<HTMLSelectElement>) => {
+      if (!deviceId) return;
+      const targetId = e.target.value;
+      const target = targets.find((t) => t.id === targetId);
+      if (!target) return;
+
+      setSwitching(true);
+      const wasStreaming = streaming;
+      try {
+        // Stop current stream
+        if (wasStreaming) {
+          try { await window.electronAPI.invoke('cdp:screencast:stop', deviceId); } catch {}
+          setStreaming(false);
+          screencastBridge.reset();
+        }
+        // Switch target
+        await selectTarget(deviceId, target.id, target.webSocketDebuggerUrl);
+        // Auto-restart streaming if it was active
+        if (wasStreaming) {
+          await window.electronAPI.invoke('cdp:screencast:start', deviceId, {
+            format: 'jpeg',
+            quality: 80,
+            maxWidth: Math.max(deviceWidth, deviceHeight),
+            maxHeight: Math.min(deviceWidth, deviceHeight),
+          });
+          setStreaming(true);
+        }
+      } catch (err) {
+        console.error('Failed to switch target:', err);
+      } finally {
+        setSwitching(false);
+      }
+    },
+    [deviceId, targets, streaming, selectTarget, setStreaming, deviceWidth, deviceHeight],
+  );
+
   return (
     <div className="screen-view">
       <div className="screen-controls">
         {!streaming ? (
-          <Button size="sm" variant="primary" onClick={startScreencast} disabled={!deviceId}>
+          <Button size="sm" variant="primary" onClick={startScreencast} disabled={!deviceId || switching}>
             Start
           </Button>
         ) : (
-          <Button size="sm" variant="danger" onClick={stopScreencast}>
+          <Button size="sm" variant="danger" onClick={stopScreencast} disabled={switching}>
             Stop
           </Button>
         )}
         <Button size="sm" variant="secondary" onClick={takeScreenshot} disabled={!deviceId || !streaming}>
           Screenshot
         </Button>
+        {targets.length > 1 && (
+          <select
+            className="target-selector"
+            value={activeTargetId || ''}
+            onChange={handleTargetChange}
+            disabled={switching || !deviceId}
+            title={t('screencast.selectTarget')}
+          >
+            {targets.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.title || t.url || t.id}
+              </option>
+            ))}
+          </select>
+        )}
         {streamError && (
           <span style={{ color: 'var(--color-danger)', fontSize: 'var(--font-size-xs)', marginLeft: 'auto' }}>
             {streamError}
+          </span>
+        )}
+        {switching && (
+          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
+            {t('screencast.switchingTarget')}
           </span>
         )}
         <span className="screen-zoom">
