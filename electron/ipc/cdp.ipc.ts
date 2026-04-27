@@ -47,7 +47,8 @@ export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
   ipcMain.handle('cdp:screencast:start', async (_event, deviceId: string, options?: Record<string, unknown>) => {
     try {
       const client = await getOrReconnect(deviceId);
-      await client.send('Page.enable');
+      // Page.enable is optional — not supported on browser/service-worker targets (e.g. Android WebView)
+      try { await client.send('Page.enable'); } catch {}
       return await client.send('Page.startScreencast', options || { format: 'jpeg', quality: 80, maxWidth: 720, maxHeight: 1280 });
     } catch (err: any) {
       console.error('[cdp:screencast:start] failed:', err.message);
