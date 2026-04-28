@@ -1,6 +1,8 @@
-import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 import * as path from 'path';
 import * as fs from 'fs';
+
+type Database = any;
+type SqlJsStatic = any;
 
 let sql: SqlJsStatic | null = null;
 let db: Database | null = null;
@@ -38,11 +40,28 @@ function saveToDisk(): void {
 export async function initDatabase(): Promise<void> {
   if (dbInitialized) return;
 
-  // Initialize sql.js
+  // Initialize sql.js - use direct require to bypass module issues
   if (!sql) {
-    sql = await initSqlJs({
-      locateFile: (file) => path.join(__dirname, '../node_modules/sql.js/dist', file),
-    });
+    // Temporarily define module.exports for sql.js initialization
+    const originalModule = (global as any).module;
+    const originalExports = (global as any).exports;
+
+    try {
+      (global as any).module = { exports: {} };
+      (global as any).exports = (global as any).module.exports;
+
+      // Require sql.js
+      const initSqlJs = require('sql.js');
+      const wasmPath = path.join(process.cwd(), 'node_modules/sql.js/dist/sql-wasm.wasm');
+
+      sql = await initSqlJs({
+        locateFile: () => wasmPath,
+      });
+    } finally {
+      // Restore original
+      (global as any).module = originalModule;
+      (global as any).exports = originalExports;
+    }
   }
 
   const dbPath = getDbPath();
