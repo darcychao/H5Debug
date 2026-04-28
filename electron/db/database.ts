@@ -1,50 +1,66 @@
-import initSqlJs, { Database } from 'sql.js';
-import * as fs from 'fs';
+import Database from 'better-sqlite3';
 import * as path from 'path';
+import * as fs from 'fs';
 
-let db: Database | null = null;
-const DB_PATH = './data/h5debug.db';
+let db: Database.Database | null = null;
+let dbInitialized = false;
 
-export async function initDatabase(): Promise<Database> {
-  if (db) return db;
-
-  const SQL = await initSqlJs();
-
-  // Load existing database or create new one
-  let data: Buffer | null = null;
-  if (fs.existsSync(DB_PATH)) {
-    data = fs.readFileSync(DB_PATH);
+// Get data directory
+function getDataDir(): string {
+  try {
+    const electron = require('electron');
+    if (electron.app) {
+      return path.join(electron.app.getPath('userData'), 'data');
+    }
+  } catch (e) {
+    // Fallback
   }
-
-  db = data ? new SQL.Database(data) : new SQL.Database();
-
-  // Run migrations
-  runMigrations(db);
-
-  // Enable WAL mode equivalent and auto-save
-  db.run('PRAGMA journal_mode=WAL;');
-
-  // Auto-save periodically
-  setInterval(() => saveDatabase(), 5000);
-
-  return db;
+  return path.join(process.cwd(), 'data');
 }
 
-function runMigrations(db: Database): void {
-  db.run(`
+function getDbPath(): string {
+  const dataDir = getDataDir();
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  return path.join(dataDir, 'h5debug.db');
+}
+
+export async function initDatabase(): Promise<void> {
+  if (dbInitialized) return;
+
+  const dbPath = getDbPath();
+  console.log('[Database] Opening database at:', dbPath);
+
+  db = new Database(dbPath);
+  db.pragma('journal_mode = WAL');
+  db.pragma('busy_timeout = 5000');
+
+  // Create tables
+  runMigrations();
+
+  dbInitialized = true;
+}
+
+function runMigrations(): void {
+  if (!db) return;
+
+  // Test cases table
+  db.exec(`
     CREATE TABLE IF NOT EXISTS testcase (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      author TEXT DEFAULT '',
+      name TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      author TEXT NOT NULL DEFAULT '',
       device_id TEXT,
-      steps TEXT DEFAULT '[]',
+      steps TEXT NOT NULL DEFAULT '[]',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
   `);
 
-  db.run(`
+  // Network records table (optional)
+  db.exec(`
     CREATE TABLE IF NOT EXISTS network_record (
       id TEXT PRIMARY KEY,
       request_id TEXT,
@@ -61,7 +77,8 @@ function runMigrations(db: Database): void {
     );
   `);
 
-  db.run(`
+  // Console overrides table (optional)
+  db.exec(`
     CREATE TABLE IF NOT EXISTS console_override (
       id TEXT PRIMARY KEY,
       method_name TEXT NOT NULL,
@@ -72,7 +89,8 @@ function runMigrations(db: Database): void {
     );
   `);
 
-  db.run(`
+  // Plugins table (optional)
+  db.exec(`
     CREATE TABLE IF NOT EXISTS plugin (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -85,29 +103,86 @@ function runMigrations(db: Database): void {
   `);
 }
 
-export function getDatabase(): Database {
-  if (!db) throw new Error('Database not initialized');
+export function getDatabase(): Database.Database {
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   return db;
 }
 
 export function saveDatabase(): void {
-  if (!db) return;
-  try {
-    const dir = path.dirname(DB_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    const data = db.export();
-    fs.writeFileSync(DB_PATH, Buffer.from(data));
-  } catch (err) {
-    console.error('Failed to save database:', err);
-  }
+  // better-sqlite3 WAL mode automatically persists
 }
 
 export function closeDatabase(): void {
   if (db) {
-    saveDatabase();
+    db.pragma('analysis_limit = 0');
     db.close();
     db = null;
+    dbInitialized = false;
   }
+}
+
+// Test case repository functions
+export function getAllTestCases(): any[] {
+  if (!db) initDatabase();
+
+  const stmt = db.prepare('SELECT * FROM testcase ORDER BY updated_at DESC');
+  return stmt.all();
+}
+
+export function getTestCase(id: string): any | null {
+  if (!db) initDatabase();
+
+  const stmt = db.prepare('SELECT * FROM testcase WHERE id = ?');
+  return stmt.get(id) || null;
+}
+
+export function createTestCase(tc: any): void {
+  if (!db) initDatabase();
+
+  const stmt = db.prepare(`
+    INSERT INTO testcase (id, name, description, author, device_id, steps, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  stmt.run(
+    tc.id,
+    tc.name,
+    tc.description,
+    tc.author,
+    tc.device_id,
+    tc.steps,
+    tc.created_at,
+    tc.updated_at
+  );
+}
+
+export function updateTestCase(id: string, updates: any): void {
+  if (!db) initDatabase();
+
+  const fields: string[] = [];
+  const values: any[] = [];
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (key === 'id') continue;
+    fields.push(`${key} = ?`);
+    values.push(value);
+  }
+
+  if (fields.length === 0) return;
+
+  // Always update updated_at
+  fields.push('updated_at = ?');
+  values.push(Date.now());
+  values.push(id);
+
+  const stmt = db.prepare(`UPDATE testcase SET ${fields.join(', ')} WHERE id = ?`);
+  stmt.run(...values);
+}
+
+export function deleteTestCase(id: string): void {
+  if (!db) initDatabase();
+
+  const stmt = db.prepare('DELETE FROM testcase WHERE id = ?');
+  stmt.run(id);
 }

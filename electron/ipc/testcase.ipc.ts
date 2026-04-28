@@ -8,7 +8,7 @@ import {
   createTestCase,
   updateTestCase,
   deleteTestCase,
-} from '../db/testcase.repo';
+} from '../db/database';
 
 export function registerTestcaseIpc(
   testEngine: TestEngine,
@@ -25,7 +25,7 @@ export function registerTestcaseIpc(
       description: row.description,
       author: row.author,
       deviceId: row.device_id,
-      steps: JSON.parse(row.steps),
+      steps: typeof row.steps === 'string' ? JSON.parse(row.steps) : (row.steps || []),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }));
@@ -41,7 +41,7 @@ export function registerTestcaseIpc(
       description: row.description,
       author: row.author,
       deviceId: row.device_id,
-      steps: JSON.parse(row.steps),
+      steps: typeof row.steps === 'string' ? JSON.parse(row.steps) : (row.steps || []),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

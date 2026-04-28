@@ -19,7 +19,7 @@ import { registerLogIpc } from './ipc/log.ipc';
 import { registerConfigIpc } from './ipc/config.ipc';
 import { registerPluginIpc } from './ipc/plugin.ipc';
 import { registerNetworkIpc } from './ipc/network.ipc';
-import { initDatabase } from './db/database';
+import { initDatabase, closeDatabase } from './db/database';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -121,7 +121,12 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
   deviceManager.stopWatching();
   configManager.stopWatching();
+  closeDatabase();
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  closeDatabase();
 });
