@@ -5,11 +5,11 @@ import Input from '../../components/pixel-ui/Input';
 import Toggle from '../../components/pixel-ui/Toggle';
 import Select from '../../components/pixel-ui/Select';
 import Button from '../../components/pixel-ui/Button';
-import { useTheme, ColorTheme, DesignStyle } from '../../hooks/useTheme';
+import { useTheme, ColorTheme, DesignStyle, FontStyle } from '../../hooks/useTheme';
 
 const Settings: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { colorTheme, designStyle, setColorTheme, setDesignStyle } = useTheme();
+  const { colorTheme, designStyle, fontStyle, setColorTheme, setDesignStyle, setFontStyle } = useTheme();
 
   const colorThemeOptions = [
     { value: 'dark' as ColorTheme, label: t('settings.themeDark') },
@@ -21,6 +21,14 @@ const Settings: React.FC = () => {
   const designStyleOptions = [
     { value: 'pixel' as DesignStyle, label: t('settings.stylePixel') },
     { value: 'modern' as DesignStyle, label: t('settings.styleModern') },
+  ];
+
+  const fontStyleOptions = [
+    { value: 'pixel' as FontStyle, label: t('settings.fontPixel') },
+    { value: 'system' as FontStyle, label: t('settings.fontSystem') },
+    { value: 'serif' as FontStyle, label: t('settings.fontSerif') },
+    { value: 'rounded' as FontStyle, label: t('settings.fontRounded') },
+    { value: 'monospace' as FontStyle, label: t('settings.fontMonospace') },
   ];
 
   return (
@@ -47,6 +55,12 @@ const Settings: React.FC = () => {
             value={designStyle}
             options={designStyleOptions}
             onChange={(v) => setDesignStyle(v as DesignStyle)}
+          />
+          <Select
+            label={t('settings.fontStyle')}
+            value={fontStyle}
+            options={fontStyleOptions}
+            onChange={(v) => setFontStyle(v as FontStyle)}
           />
         </div>
       </Card>
