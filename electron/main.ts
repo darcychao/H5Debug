@@ -19,6 +19,7 @@ import { registerLogIpc } from './ipc/log.ipc';
 import { registerConfigIpc } from './ipc/config.ipc';
 import { registerPluginIpc } from './ipc/plugin.ipc';
 import { registerNetworkIpc } from './ipc/network.ipc';
+import { initDatabase } from './db/database';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -104,7 +105,10 @@ function createWindow() {
   deviceManager.watchDevices();
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Initialize database first
+  await initDatabase();
+
   createWindow();
 
   app.on('activate', () => {

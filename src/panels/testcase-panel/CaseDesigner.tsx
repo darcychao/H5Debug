@@ -30,7 +30,7 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase, dev
           <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center' }}>
             {t('testcase.selectToDesign')}
           </div>
-          <Button size="md" variant="primary" onClick={() => {
+          <Button size="md" variant="primary" onClick={async () => {
             const tc: TestCase = {
               id: crypto.randomUUID(),
               name: '',
@@ -40,7 +40,7 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase, dev
               createdAt: Date.now(),
               updatedAt: Date.now(),
             };
-            addTestCase(tc);
+            await addTestCase(tc);
             onCreateCase?.(tc);
           }}>
             {t('testcase.new')}
@@ -61,16 +61,16 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase, dev
     setShowStepEditor(true);
   };
 
-  const handleSaveStep = () => {
+  const handleSaveStep = async () => {
     if (!editingStep) return;
     const existing = testCase.steps.find((s) => s.id === editingStep.id);
     if (existing) {
-      updateStep(testCase.id, editingStep.id, editingStep);
+      await updateStep(testCase.id, editingStep.id, editingStep);
     } else {
       // Insert at position
       const newSteps = [...testCase.steps];
       newSteps.splice(insertAfterIdx + 1, 0, editingStep);
-      updateTestCase(testCase.id, { steps: newSteps });
+      await updateTestCase(testCase.id, { steps: newSteps });
     }
     setShowStepEditor(false);
     setEditingStep(null);
@@ -136,7 +136,7 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase, dev
               </span>
               <span style={{ flex: 1 }}>{step.name || step.selector || t('testcase.noName')}</span>
               <Button size="sm" variant="ghost" onClick={() => { setEditingStep({ ...step }); setShowStepEditor(true); }}>{t('network.edit')}</Button>
-              <Button size="sm" variant="ghost" onClick={() => deleteStep(testCase.id, step.id)}>{t('testcase.del')}</Button>
+              <Button size="sm" variant="ghost" onClick={async () => await deleteStep(testCase.id, step.id)}>{t('testcase.del')}</Button>
             </div>
           ))}
         </div>

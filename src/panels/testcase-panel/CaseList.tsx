@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '../../components/pixel-ui/Card';
 import Button from '../../components/pixel-ui/Button';
@@ -11,9 +11,15 @@ interface CaseListProps {
 
 const CaseList: React.FC<CaseListProps> = ({ onSelect, activeCaseId }) => {
   const { t } = useTranslation();
-  const { testCases, addTestCase, deleteTestCase } = useTestcaseStore();
+  const { testCases, addTestCase, deleteTestCase, loadTestCases, loaded } = useTestcaseStore();
 
-  const handleCreate = () => {
+  useEffect(() => {
+    if (!loaded) {
+      loadTestCases();
+    }
+  }, [loadTestCases, loaded]);
+
+  const handleCreate = async () => {
     const tc: TestCase = {
       id: crypto.randomUUID(),
       name: '',
@@ -23,8 +29,13 @@ const CaseList: React.FC<CaseListProps> = ({ onSelect, activeCaseId }) => {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    addTestCase(tc);
+    await addTestCase(tc);
     onSelect(tc);
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    await deleteTestCase(id);
   };
 
   return (
@@ -45,7 +56,7 @@ const CaseList: React.FC<CaseListProps> = ({ onSelect, activeCaseId }) => {
           >
             <span className="device-item-name">{tc.name || t('testcase.new')}</span>
             <span className="device-item-id">{tc.steps.length} {t('testcase.steps')}</span>
-            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); deleteTestCase(tc.id); }}>{t('testcase.del')}</Button>
+            <Button size="sm" variant="ghost" onClick={(e) => handleDelete(e, tc.id)}>{t('testcase.del')}</Button>
           </div>
         ))
       )}
