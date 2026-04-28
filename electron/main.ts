@@ -18,6 +18,7 @@ import { registerTestcaseIpc } from './ipc/testcase.ipc';
 import { registerLogIpc } from './ipc/log.ipc';
 import { registerConfigIpc } from './ipc/config.ipc';
 import { registerPluginIpc } from './ipc/plugin.ipc';
+import { registerNetworkIpc } from './ipc/network.ipc';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -92,6 +93,7 @@ function createWindow() {
   // Register IPC handlers
   registerDeviceIpc(deviceManager, cdpPool, mainWindow);
   registerCdpIpc(cdpPool, mainWindow);
+  registerNetworkIpc(cdpPool, mainWindow);
   registerPackageIpc(packageManager);
   registerTestcaseIpc(testEngine, recorder, reportGenerator, mainWindow);
   registerLogIpc(deviceManager, mainWindow);

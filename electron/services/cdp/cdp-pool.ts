@@ -1,9 +1,13 @@
 import { EventEmitter } from 'events';
 import { CdpClient } from './cdp-client';
+import { NetworkService, InterceptRule } from './network';
 import http from 'http';
 
 export class CdpPool extends EventEmitter {
   private clients: Map<string, CdpClient> = new Map();
+  private networkServices: Map<string, NetworkService> = new Map();
+  private globalInterceptRules: InterceptRule[] = [];
+  private globalInterceptEnabled: boolean = false;
 
   constructor() {
     super();
@@ -46,9 +50,83 @@ export class CdpPool extends EventEmitter {
       this.emit('event', deviceId, method, params);
     });
 
+    // Create network service for this client
+    const networkService = new NetworkService(client);
+    this.networkServices.set(deviceId, networkService);
+
+    // Forward network events
+    networkService.on('request', (request) => {
+      this.emit('network-request', deviceId, request);
+    });
+    networkService.on('response', (response) => {
+      this.emit('network-response', deviceId, response);
+    });
+    networkService.on('response-body', (response) => {
+      this.emit('network-response-body', deviceId, response);
+    });
+    networkService.on('request-blocked', (request, rule) => {
+      this.emit('network-event', deviceId, { type: 'blocked', request, rule });
+    });
+    networkService.on('request-modified', (request, rule) => {
+      this.emit('network-event', deviceId, { type: 'modified', request, rule });
+    });
+    networkService.on('request-mocked', (request, rule) => {
+      this.emit('network-event', deviceId, { type: 'mocked', request, rule });
+    });
+
+    // Apply global settings to new network service
+    if (this.globalInterceptEnabled) {
+      networkService.setInterceptRules(this.globalInterceptRules);
+      networkService.enableIntercept().catch((e) => {
+        console.log('[CdpPool] Failed to enable intercept for new client:', e);
+      });
+    }
+
     this.clients.set(deviceId, client);
     console.log(`[CdpPool] stored client for ${deviceId}, total clients:`, this.clients.size);
     return client;
+  }
+
+  async setInterceptEnabled(enabled: boolean): Promise<void> {
+    this.globalInterceptEnabled = enabled;
+    for (const [deviceId, networkService] of this.networkServices) {
+      if (enabled) {
+        networkService.setInterceptRules(this.globalInterceptRules);
+        await networkService.enableIntercept().catch((e) => {
+          console.log('[CdpPool] Failed to enable intercept for', deviceId, e);
+        });
+      } else {
+        await networkService.disableIntercept().catch((e) => {
+          console.log('[CdpPool] Failed to disable intercept for', deviceId, e);
+        });
+      }
+    }
+  }
+
+  async setInterceptRules(rules: InterceptRule[]): Promise<void> {
+    this.globalInterceptRules = rules;
+    for (const networkService of this.networkServices.values()) {
+      networkService.setInterceptRules(rules);
+      if (this.globalInterceptEnabled) {
+        // Refresh the intercept with new rules
+        await networkService.disableIntercept().catch(() => {});
+        await networkService.enableIntercept().catch((e) => {
+          console.log('[CdpPool] Failed to re-enable intercept with new rules:', e);
+        });
+      }
+    }
+  }
+
+  getInterceptRules(): InterceptRule[] {
+    return [...this.globalInterceptRules];
+  }
+
+  isInterceptEnabled(): boolean {
+    return this.globalInterceptEnabled;
+  }
+
+  getNetworkService(deviceId: string): NetworkService | undefined {
+    return this.networkServices.get(deviceId);
   }
 
   /**
@@ -212,6 +290,7 @@ export class CdpPool extends EventEmitter {
       client.removeAllListeners();
       await client.close();
       this.clients.delete(deviceId);
+      this.networkServices.delete(deviceId);
     }
   }
 
