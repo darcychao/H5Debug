@@ -5,19 +5,14 @@ import Input from '../../components/pixel-ui/Input';
 import Select from '../../components/pixel-ui/Select';
 import { useTranslation } from 'react-i18next';
 
-interface DomNode {
-  nodeId: number;
-  localName: string;
-  attributes?: string[];
-  children?: DomNode[];
-  textContent?: string;
-}
-
 interface ElementInfo {
   tagName: string;
   id: string;
   className: string;
   text: string;
+  hasId?: boolean;
+  hasClass?: boolean;
+  path?: string;
 }
 
 interface SelectorResult {
@@ -26,9 +21,12 @@ interface SelectorResult {
   idSelector: string;
   cssSelector: string;
   xpathSelector: string;
+  pathSelector: string;
   text: string;
   attributes: string[];
   nodeId: number;
+  hasId: boolean;
+  hasClass: boolean;
 }
 
 interface SelectorPickerProps {
@@ -43,7 +41,7 @@ const SelectorPicker: React.FC<SelectorPickerProps> = ({ deviceId, onSelect }) =
   const [classFilter, setClassFilter] = useState('');
   const [idFilter, setIdFilter] = useState('');
   const [textFilter, setTextFilter] = useState('');
-  const [selectorType, setSelectorType] = useState<'css' | 'id' | 'xpath'>('css');
+  const [selectorType, setSelectorType] = useState<'css' | 'id' | 'xpath' | 'path'>('css');
   const [loading, setLoading] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
@@ -51,28 +49,33 @@ const SelectorPicker: React.FC<SelectorPickerProps> = ({ deviceId, onSelect }) =
     if (!deviceId || !window.electronAPI) return;
     setLoading(true);
     try {
-      // Use Runtime.evaluate for reliable DOM access
       const result: any = await window.electronAPI.invoke('cdp:dom:getElements', deviceId);
       if (result?.result?.value) {
         const elements: ElementInfo[] = result.result.value;
         setSelectors(elements.map((el, idx) => {
-          const classAttr = String(el.className || '').split(' ')[0] || '';
+          const classStr = String(el.className || '');
+          const classAttr = classStr.split(/\s+/).filter(Boolean)[0] || '';
           const idAttr = el.id || '';
           const tagName = el.tagName?.toLowerCase() || '';
           const text = el.text || '';
           const classSel = classAttr ? `.${classAttr}` : '';
           const idSel = idAttr ? `#${idAttr}` : '';
           const cssSel = idAttr ? `#${idAttr}` : classAttr ? `${tagName}.${classAttr}` : tagName;
-          const xpathSel = `//${tagName}${classAttr ? `[@class="${classAttr}"]` : ''}${idAttr ? `[@id="${idAttr}"]` : ''}`;
+          const xpathSel = `//${tagName}${idAttr ? `[@id="${idAttr}"]` : classAttr ? `[@class="${classAttr}"]` : ''}`;
+          const pathSel = el.path || cssSel;
+
           return {
             tagName,
             classSelector: classSel || tagName,
             idSelector: idSel || tagName,
             cssSelector: cssSel,
             xpathSelector: xpathSel,
+            pathSelector: pathSel,
             text,
-            attributes: el.id ? [`id`, el.id, `class`, el.className] : el.className ? [`class`, el.className] : [],
+            attributes: idAttr ? ['id', idAttr, 'class', el.className] : el.className ? ['class', el.className] : [],
             nodeId: idx,
+            hasId: el.hasId || !!idAttr,
+            hasClass: el.hasClass || !!classAttr,
           };
         }));
       }
@@ -83,51 +86,10 @@ const SelectorPicker: React.FC<SelectorPickerProps> = ({ deviceId, onSelect }) =
     }
   };
 
-  const extractSelectors = (node: DomNode, results: SelectorResult[] = []): SelectorResult[] => {
-    const attrs = node.attributes || [];
-    let id = '';
-    let classes: string[] = [];
-
-    for (let i = 0; i < attrs.length; i += 2) {
-      if (attrs[i] === 'id') id = attrs[i + 1];
-      if (attrs[i] === 'class') classes = attrs[i + 1].split(/\s+/).filter(Boolean);
-    }
-
-    const text = (node.textContent || '').trim().slice(0, 80);
-    const tagName = node.localName || '';
-
-    if (tagName && tagName !== '#document' && tagName !== '#text') {
-      const classAttr = classes[0] || '';
-      const idAttr = id || '';
-      const classSel = classAttr ? `.${classAttr}` : '';
-      const idSel = idAttr ? `#${idAttr}` : '';
-      const cssSel = idAttr ? `#${idAttr}` : classAttr ? `${tagName}.${classAttr}` : tagName;
-      const xpathSel = `//${tagName}${classAttr ? `[@class="${classAttr}"]` : ''}${idAttr ? `[@id="${idAttr}"]` : ''}${text ? `[contains(text(),"${text.slice(0, 30)}")]` : ''}`;
-
-      results.push({
-        tagName,
-        classSelector: classSel || tagName,
-        idSelector: idSel || tagName,
-        cssSelector: cssSel,
-        xpathSelector: xpathSel,
-        text,
-        attributes: attrs,
-        nodeId: node.nodeId,
-      });
-    }
-
-    if (node.children) {
-      for (const child of node.children) {
-        extractSelectors(child, results);
-      }
-    }
-
-    return results;
-  };
-
   const getSelector = (s: SelectorResult): string => {
-    if (selectorType === 'id') return s.idSelector;
+    if (selectorType === 'id' && s.hasId) return s.idSelector;
     if (selectorType === 'xpath') return s.xpathSelector;
+    if (selectorType === 'path') return s.pathSelector;
     return s.cssSelector;
   };
 
@@ -163,8 +125,9 @@ const SelectorPicker: React.FC<SelectorPickerProps> = ({ deviceId, onSelect }) =
             { value: 'css', label: 'CSS' },
             { value: 'id', label: 'ID' },
             { value: 'xpath', label: 'XPath' },
+            { value: 'path', label: 'Path' },
           ]}
-          onChange={(v) => setSelectorType(v as 'css' | 'id' | 'xpath')}
+          onChange={(v) => setSelectorType(v as 'css' | 'id' | 'xpath' | 'path')}
         />
         <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
           {t('selector.found')}: {filtered.length} / {selectors.length}

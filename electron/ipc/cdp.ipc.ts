@@ -113,7 +113,56 @@ export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
   ipcMain.handle('cdp:dom:getElements', async (_event, deviceId: string) => {
     // Use Runtime.evaluate to get DOM elements via JavaScript (more reliable than CDP DOM)
     return sendWithReconnect(deviceId, 'Runtime.evaluate', {
-      expression: `(()=>{const els=document.querySelectorAll('*');const r=[];for(let i=0;i<els.length&&r.length<500;i++){const el=els[i];r.push({tagName:el.tagName,id:el.id,className:el.className,text:el.textContent?.trim().slice(0,80)||''});}return r;})()`,
+      expression: `(()=>{
+        const els = [];
+        const seen = new Set();
+        const walk = (node) => {
+          if (!node || node.nodeType !== 1) return;
+          const tag = node.tagName?.toLowerCase();
+          if (!tag || tag === 'script' || tag === 'style' || tag === 'noscript' || tag === 'svg') return;
+
+          const rect = node.getBoundingClientRect?.();
+          if (rect && (rect.width === 0 || rect.height === 0)) return;
+
+          const path = [];
+          let n = node;
+          while (n && n !== document.body) {
+            const t = n.tagName?.toLowerCase();
+            if (t) {
+              if (n.id) path.unshift('#' + n.id);
+              else {
+                let cls = '';
+                if (n.className && typeof n.className === 'string') {
+                  const cs = n.className.split(/\\s+/).filter(Boolean);
+                  if (cs[0]) cls = '.' + cs[0];
+                }
+                path.unshift(t + cls);
+              }
+            }
+            n = n.parentElement;
+          }
+
+          const uniqueKey = path.join('>') || tag;
+          if (seen.has(uniqueKey)) return;
+          seen.add(uniqueKey);
+
+          els.push({
+            tagName: node.tagName,
+            id: node.id || '',
+            className: (typeof node.className === 'string') ? node.className : '',
+            text: (node.textContent || '').trim().slice(0, 100),
+            hasId: !!node.id,
+            hasClass: !!(node.className && typeof node.className === 'string' && node.className.trim()),
+            path: path.join(' > ')
+          });
+
+          for (let child of node.children) {
+            walk(child);
+          }
+        };
+        walk(document.body);
+        return els.slice(0, 2000);
+      })()`,
       returnByValue: true,
     });
   });
