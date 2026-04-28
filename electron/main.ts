@@ -77,6 +77,17 @@ function createWindow() {
     show: false,
   });
 
+  // Register IPC handlers - register EARLY before loading any content
+  registerDeviceIpc(deviceManager, cdpPool, mainWindow);
+  registerCdpIpc(cdpPool, mainWindow);
+  registerNetworkIpc(cdpPool, mainWindow);
+  registerPackageIpc(packageManager);
+  registerTestcaseIpc(testEngine, recorder, reportGenerator, cdpPool, mainWindow);
+  registerLogIpc(deviceManager, mainWindow);
+  registerConfigIpc(configManager);
+  registerPluginIpc(pluginManager);
+  registerPortProxyIpc();
+
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
   });
@@ -91,17 +102,6 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-
-  // Register IPC handlers
-  registerDeviceIpc(deviceManager, cdpPool, mainWindow);
-  registerCdpIpc(cdpPool, mainWindow);
-  registerNetworkIpc(cdpPool, mainWindow);
-  registerPackageIpc(packageManager);
-  registerTestcaseIpc(testEngine, recorder, reportGenerator, cdpPool, mainWindow);
-  registerLogIpc(deviceManager, mainWindow);
-  registerConfigIpc(configManager);
-  registerPluginIpc(pluginManager);
-  registerPortProxyIpc();
 
   // Start device watching
   deviceManager.watchDevices();
