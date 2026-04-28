@@ -53,15 +53,21 @@ const NetworkPanel: React.FC = () => {
     if (!window.electronAPI) return;
 
     const removeRequestListener = window.electronAPI.on('cdp:network:request', (data: any) => {
-      addRequest(data.request);
+      if (data?.request) {
+        addRequest(data.request);
+      }
     });
 
     const removeResponseListener = window.electronAPI.on('cdp:network:response', (data: any) => {
-      addResponse(data.response);
+      if (data?.response) {
+        addResponse(data.response);
+      }
     });
 
     const removeResponseBodyListener = window.electronAPI.on('cdp:network:response-body', (data: any) => {
-      addResponse(data.response);
+      if (data?.response) {
+        addResponse(data.response);
+      }
     });
 
     return () => {
@@ -107,7 +113,7 @@ const NetworkPanel: React.FC = () => {
     filterText ? r.url.toLowerCase().includes(filterText.toLowerCase()) : true,
   );
 
-  const selectedRequest = requests.find((r) => r.id === selectedRequestId);
+  const selectedRequest = requests.find((r) => r && r.id === selectedRequestId);
   const selectedResponse = selectedRequestId ? responses.get(selectedRequestId) : null;
 
   return (

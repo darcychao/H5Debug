@@ -96,7 +96,7 @@ function createWindow() {
   registerCdpIpc(cdpPool, mainWindow);
   registerNetworkIpc(cdpPool, mainWindow);
   registerPackageIpc(packageManager);
-  registerTestcaseIpc(testEngine, recorder, reportGenerator, mainWindow);
+  registerTestcaseIpc(testEngine, recorder, reportGenerator, cdpPool, mainWindow);
   registerLogIpc(deviceManager, mainWindow);
   registerConfigIpc(configManager);
   registerPluginIpc(pluginManager);

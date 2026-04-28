@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron';
 import { TestEngine, TestCase } from '../services/testcase/engine';
 import { Recorder } from '../services/testcase/recorder';
 import { ReportGenerator } from '../services/testcase/report-generator';
+import { CdpPool } from '../services/cdp/cdp-pool';
 import {
   getAllTestCases,
   getTestCase,
@@ -14,6 +15,7 @@ export function registerTestcaseIpc(
   testEngine: TestEngine,
   recorder: Recorder,
   reportGenerator: ReportGenerator,
+  cdpPool: CdpPool,
   mainWindow: BrowserWindow,
 ) {
   // Get all test cases
@@ -103,7 +105,7 @@ export function registerTestcaseIpc(
 
   // Recording functionality
   ipcMain.handle('testcase:record:start', async (_event, deviceId: string) => {
-    const client = (testEngine as any).cdpPool?.getClient(deviceId);
+    const client = cdpPool.getClient(deviceId);
     if (!client) throw new Error(`No CDP client for device: ${deviceId}`);
     await recorder.start(client);
   });

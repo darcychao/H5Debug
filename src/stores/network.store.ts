@@ -69,12 +69,16 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
   filterText: '',
 
   addRequest: (req) =>
-    set((state) => ({
-      requests: [...state.requests, req].slice(-5000), // max 5000 records
-    })),
+    set((state) => {
+      if (!req || !req.id) return state;
+      return {
+        requests: [...state.requests, req].slice(-5000), // max 5000 records
+      };
+    }),
 
   addResponse: (res) =>
     set((state) => {
+      if (!res || !res.requestId) return state;
       const newResponses = new Map(state.responses);
       newResponses.set(res.requestId, res);
       return { responses: newResponses };
