@@ -40,48 +40,53 @@ function saveToDisk(): void {
 export async function initDatabase(): Promise<void> {
   if (dbInitialized) return;
 
-  // Initialize sql.js - use direct require to bypass module issues
-  if (!sql) {
-    // Temporarily define module.exports for sql.js initialization
-    const originalModule = (global as any).module;
-    const originalExports = (global as any).exports;
+  try {
+    // Initialize sql.js - use direct require to bypass module issues
+    if (!sql) {
+      // Temporarily define module.exports for sql.js initialization
+      const originalModule = (global as any).module;
+      const originalExports = (global as any).exports;
 
-    try {
-      (global as any).module = { exports: {} };
-      (global as any).exports = (global as any).module.exports;
+      try {
+        (global as any).module = { exports: {} };
+        (global as any).exports = (global as any).module.exports;
 
-      // Require sql.js
-      const initSqlJs = require('sql.js');
-      const wasmPath = path.join(process.cwd(), 'node_modules/sql.js/dist/sql-wasm.wasm');
+        // Require sql.js
+        const initSqlJs = require('sql.js');
+        const wasmPath = path.join(process.cwd(), 'node_modules/sql.js/dist/sql-wasm.wasm');
 
-      sql = await initSqlJs({
-        locateFile: () => wasmPath,
-      });
-    } finally {
-      // Restore original
-      (global as any).module = originalModule;
-      (global as any).exports = originalExports;
+        sql = await initSqlJs({
+          locateFile: () => wasmPath,
+        });
+      } finally {
+        // Restore original
+        (global as any).module = originalModule;
+        (global as any).exports = originalExports;
+      }
     }
+
+    const dbPath = getDbPath();
+    console.log('[Database] Opening database at:', dbPath);
+
+    // Load existing database or create new
+    let fileBuffer: Uint8Array | undefined;
+    if (fs.existsSync(dbPath)) {
+      fileBuffer = fs.readFileSync(dbPath);
+    }
+
+    db = new sql.Database(fileBuffer);
+
+    // Create tables
+    runMigrations();
+
+    // Save initial state
+    saveToDisk();
+
+    dbInitialized = true;
+  } catch (err) {
+    console.error('[Database] Initialization failed:', err);
+    // Don't rethrow - allow app to continue without database functionality
   }
-
-  const dbPath = getDbPath();
-  console.log('[Database] Opening database at:', dbPath);
-
-  // Load existing database or create new
-  let fileBuffer: Uint8Array | undefined;
-  if (fs.existsSync(dbPath)) {
-    fileBuffer = fs.readFileSync(dbPath);
-  }
-
-  db = new sql.Database(fileBuffer);
-
-  // Create tables
-  runMigrations();
-
-  // Save initial state
-  saveToDisk();
-
-  dbInitialized = true;
 }
 
 function runMigrations(): void {
@@ -145,15 +150,14 @@ function runMigrations(): void {
   `);
 }
 
-export function getDatabase(): Database {
-  if (!db) {
-    throw new Error('Database not initialized');
-  }
+export function getDatabase(): Database | null {
   return db;
 }
 
 export function saveDatabase(): void {
-  saveToDisk();
+  if (db) {
+    saveToDisk();
+  }
 }
 
 export function closeDatabase(): void {
@@ -167,81 +171,118 @@ export function closeDatabase(): void {
 
 // Test case repository functions
 export function getAllTestCases(): any[] {
-  if (!db) throw new Error('Database not initialized');
-
-  const stmt = db.prepare('SELECT * FROM testcase ORDER BY updated_at DESC');
-  const rows: any[] = [];
-  while (stmt.step()) {
-    rows.push(stmt.getAsObject());
+  if (!db) {
+    console.warn('[Database] getAllTestCases called but database not initialized');
+    return [];
   }
-  stmt.free();
-  return rows;
+
+  try {
+    const stmt = db.prepare('SELECT * FROM testcase ORDER BY updated_at DESC');
+    const rows: any[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return rows;
+  } catch (err) {
+    console.error('[Database] getAllTestCases error:', err);
+    return [];
+  }
 }
 
 export function getTestCase(id: string): any | null {
-  if (!db) throw new Error('Database not initialized');
-
-  const stmt = db.prepare('SELECT * FROM testcase WHERE id = ?');
-  stmt.bind([id]);
-  let row: any = null;
-  if (stmt.step()) {
-    row = stmt.getAsObject();
+  if (!db) {
+    console.warn('[Database] getTestCase called but database not initialized');
+    return null;
   }
-  stmt.free();
-  return row;
+
+  try {
+    const stmt = db.prepare('SELECT * FROM testcase WHERE id = ?');
+    stmt.bind([id]);
+    let row: any = null;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    return row;
+  } catch (err) {
+    console.error('[Database] getTestCase error:', err);
+    return null;
+  }
 }
 
 export function createTestCase(tc: any): void {
-  if (!db) throw new Error('Database not initialized');
+  if (!db) {
+    console.warn('[Database] createTestCase called but database not initialized');
+    return;
+  }
 
-  const stmt = db.prepare(`
-    INSERT INTO testcase (id, name, description, author, device_id, steps, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  stmt.run([
-    tc.id,
-    tc.name,
-    tc.description,
-    tc.author,
-    tc.device_id,
-    tc.steps,
-    tc.created_at,
-    tc.updated_at,
-  ]);
-  stmt.free();
-  saveToDisk();
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO testcase (id, name, description, author, device_id, steps, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run([
+      tc.id,
+      tc.name,
+      tc.description,
+      tc.author,
+      tc.device_id,
+      tc.steps,
+      tc.created_at,
+      tc.updated_at,
+    ]);
+    stmt.free();
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] createTestCase error:', err);
+  }
 }
 
 export function updateTestCase(id: string, updates: any): void {
-  if (!db) throw new Error('Database not initialized');
-
-  const fields: string[] = [];
-  const values: any[] = [];
-
-  for (const [key, value] of Object.entries(updates)) {
-    if (key === 'id') continue;
-    fields.push(`${key} = ?`);
-    values.push(value);
+  if (!db) {
+    console.warn('[Database] updateTestCase called but database not initialized');
+    return;
   }
 
-  if (fields.length === 0) return;
+  try {
+    const fields: string[] = [];
+    const values: any[] = [];
 
-  // Always update updated_at
-  fields.push('updated_at = ?');
-  values.push(Date.now());
-  values.push(id);
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'id') continue;
+      fields.push(`${key} = ?`);
+      values.push(value);
+    }
 
-  const stmt = db.prepare(`UPDATE testcase SET ${fields.join(', ')} WHERE id = ?`);
-  stmt.run(values);
-  stmt.free();
-  saveToDisk();
+    if (fields.length === 0) return;
+
+    // Always update updated_at
+    fields.push('updated_at = ?');
+    values.push(Date.now());
+    values.push(id);
+
+    const stmt = db.prepare(`UPDATE testcase SET ${fields.join(', ')} WHERE id = ?`);
+    stmt.run(values);
+    stmt.free();
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] updateTestCase error:', err);
+  }
 }
 
 export function deleteTestCase(id: string): void {
-  if (!db) throw new Error('Database not initialized');
+  if (!db) {
+    console.warn('[Database] deleteTestCase called but database not initialized');
+    return;
+  }
 
-  const stmt = db.prepare('DELETE FROM testcase WHERE id = ?');
-  stmt.run([id]);
-  stmt.free();
-  saveToDisk();
+  try {
+    const stmt = db.prepare('DELETE FROM testcase WHERE id = ?');
+    stmt.run([id]);
+    stmt.free();
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] deleteTestCase error:', err);
+  }
 }

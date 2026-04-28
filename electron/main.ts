@@ -19,6 +19,7 @@ import { registerLogIpc } from './ipc/log.ipc';
 import { registerConfigIpc } from './ipc/config.ipc';
 import { registerPluginIpc } from './ipc/plugin.ipc';
 import { registerNetworkIpc } from './ipc/network.ipc';
+import { registerPortProxyIpc } from './ipc/portproxy.ipc';
 import { initDatabase, closeDatabase } from './db/database';
 
 let mainWindow: BrowserWindow | null = null;
@@ -100,14 +101,19 @@ function createWindow() {
   registerLogIpc(deviceManager, mainWindow);
   registerConfigIpc(configManager);
   registerPluginIpc(pluginManager);
+  registerPortProxyIpc();
 
   // Start device watching
   deviceManager.watchDevices();
 }
 
 app.whenReady().then(async () => {
-  // Initialize database first
-  await initDatabase();
+  // Initialize database (don't block app startup)
+  try {
+    await initDatabase();
+  } catch (err) {
+    console.error('Failed to initialize database:', err);
+  }
 
   createWindow();
 
