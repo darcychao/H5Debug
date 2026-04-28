@@ -84,7 +84,7 @@ const MainLayout: React.FC = () => {
               content: (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                   <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                    <CaseDesigner testCase={activeTestCase} onCreateCase={setActiveTestCase} />
+                    <CaseDesigner testCase={activeTestCase} onCreateCase={setActiveTestCase} deviceId={activeDeviceId} />
                   </div>
                   <ExecutionPanel testCase={activeTestCase} />
                 </div>

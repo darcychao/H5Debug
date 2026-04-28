@@ -129,6 +129,7 @@
     "loading": "Loading...",
     "found": "Found",
     "use": "Use",
+    "pick": "Pick Element",
     "tagPlaceholder": "Tag (div, button...)",
     "classPlaceholder": "Class name",
     "idPlaceholder": "ID",

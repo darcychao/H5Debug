@@ -6,18 +6,22 @@ import Input from '../../components/pixel-ui/Input';
 import Select from '../../components/pixel-ui/Select';
 import Modal from '../../components/pixel-ui/Modal';
 import { useTestcaseStore, TestCase, TestStep, StepType } from '../../stores/testcase.store';
+import SelectorPicker from './SelectorPicker';
 
 interface CaseDesignerProps {
   testCase: TestCase | null;
   onCreateCase?: (tc: TestCase) => void;
+  deviceId: string | null;
 }
 
-const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase }) => {
+const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase, deviceId }) => {
   const { t } = useTranslation();
   const { updateTestCase, addTestCase, addStep, updateStep, deleteStep } = useTestcaseStore();
   const [showStepEditor, setShowStepEditor] = useState(false);
   const [editingStep, setEditingStep] = useState<TestStep | null>(null);
   const [insertAfterIdx, setInsertAfterIdx] = useState(-1);
+  const [showSelectorPicker, setShowSelectorPicker] = useState(false);
+  const [selectorField, setSelectorField] = useState<'selector' | 'conditionSelector'>('selector');
 
   if (!testCase) {
     return (
@@ -132,13 +136,47 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase }) =
 
       <Modal
         open={showStepEditor}
-        onClose={() => { setShowStepEditor(false); setEditingStep(null); }}
+        onClose={() => { setShowStepEditor(false); setEditingStep(null); setShowSelectorPicker(false); }}
         title={t('testcase.stepEditor')}
         footer={<Button variant="primary" onClick={handleSaveStep}>{t('testcase.save')}</Button>}
       >
         {editingStep && (
-          <StepEditorForm step={editingStep} onChange={setEditingStep} allSteps={testCase.steps} />
+          <StepEditorForm
+            step={editingStep}
+            onChange={setEditingStep}
+            allSteps={testCase.steps}
+            deviceId={deviceId}
+            onOpenSelectorPicker={(field) => { setSelectorField(field); setShowSelectorPicker(true); }}
+          />
         )}
+      </Modal>
+
+      <Modal
+        open={showStepEditor && showSelectorPicker}
+        onClose={() => setShowSelectorPicker(false)}
+        title={t('selector.title') || 'Select Element'}
+        width={640}
+      >
+        <SelectorPicker
+          deviceId={deviceId}
+          onSelect={(sel) => {
+            if (editingStep) {
+              if (selectorField === 'selector') {
+                setEditingStep({ ...editingStep, selector: sel });
+              } else if (selectorField === 'conditionSelector') {
+                setEditingStep({
+                  ...editingStep,
+                  condition: {
+                    ...editingStep.condition,
+                    selector: sel,
+                    type: editingStep.condition?.type || 'elementExists'
+                  }
+                });
+              }
+            }
+            setShowSelectorPicker(false);
+          }}
+        />
       </Modal>
     </Card>
   );
@@ -148,9 +186,35 @@ const StepEditorForm: React.FC<{
   step: TestStep;
   onChange: (step: TestStep) => void;
   allSteps: TestStep[];
-}> = ({ step, onChange, allSteps }) => {
+  deviceId: string | null;
+  onOpenSelectorPicker: (field: 'selector' | 'conditionSelector') => void;
+}> = ({ step, onChange, allSteps, deviceId, onOpenSelectorPicker }) => {
   const { t } = useTranslation();
   const update = (updates: Partial<TestStep>) => onChange({ ...step, ...updates });
+
+  const SelectorInputWithPicker = ({ label, value, onChange, field }: { label: string, value: string, onChange: (v: string) => void, field: 'selector' | 'conditionSelector' }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      {label && <label className="pixel-input-label">{label}</label>}
+      <div style={{ display: 'flex', gap: '4px' }}>
+        <input
+          className="pixel-input"
+          style={{ flex: 1 }}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="e.g. #login-btn"
+        />
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onOpenSelectorPicker(field)}
+          disabled={!deviceId}
+          style={{ flexShrink: 0 }}
+        >
+          {t('selector.pick') || '📌'}
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
@@ -169,7 +233,12 @@ const StepEditorForm: React.FC<{
         onChange={(v) => update({ type: v as StepType })}
       />
       {(step.type === 'click' || step.type === 'input') && (
-        <Input label={t('testcase.selector')} value={step.selector || ''} onChange={(e) => update({ selector: (e.target as HTMLInputElement).value })} placeholder="e.g. #login-btn" />
+        <SelectorInputWithPicker
+          label={t('testcase.selector')}
+          value={step.selector || ''}
+          onChange={(v) => update({ selector: v })}
+          field="selector"
+        />
       )}
       {step.type === 'input' && (
         <>
@@ -188,7 +257,12 @@ const StepEditorForm: React.FC<{
             ]}
             onChange={(v) => update({ condition: { type: v as 'elementExists' | 'elementNotExists', selector: step.condition?.selector || '' } })}
           />
-          <Input label={t('testcase.conditionSelector')} value={step.condition?.selector || ''} onChange={(e) => update({ condition: { type: step.condition?.type || 'elementExists', selector: (e.target as HTMLInputElement).value } })} />
+          <SelectorInputWithPicker
+            label={t('testcase.conditionSelector')}
+            value={step.condition?.selector || ''}
+            onChange={(v) => update({ condition: { type: step.condition?.type || 'elementExists', selector: v } })}
+            field="conditionSelector"
+          />
         </div>
       )}
       {step.type === 'loop' && (

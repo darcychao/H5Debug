@@ -56,7 +56,7 @@ const SelectorPicker: React.FC<SelectorPickerProps> = ({ deviceId, onSelect }) =
       if (result?.result?.value) {
         const elements: ElementInfo[] = result.result.value;
         setSelectors(elements.map((el, idx) => {
-          const classAttr = el.className?.split(' ')[0] || '';
+          const classAttr = String(el.className || '').split(' ')[0] || '';
           const idAttr = el.id || '';
           const tagName = el.tagName?.toLowerCase() || '';
           const text = el.text || '';
@@ -220,7 +220,7 @@ const SelectorPicker: React.FC<SelectorPickerProps> = ({ deviceId, onSelect }) =
                 )}
                 {elemClass && (
                   <span style={{ fontSize: '9px', color: isSelected ? '#fff' : 'var(--color-info)' }} className={isSelected ? '' : 'selector-class'}>
-                    {elemClass.split(' ')[0]}
+                    {String(elemClass || '').split(' ')[0]}
                   </span>
                 )}
                 <Button

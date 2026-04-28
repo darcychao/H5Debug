@@ -129,6 +129,7 @@
     "loading": "加载中...",
     "found": "找到",
     "use": "使用",
+    "pick": "选择元素",
     "tagPlaceholder": "标签 (div, button...)",
     "classPlaceholder": "类名",
     "idPlaceholder": "ID",
