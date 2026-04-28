@@ -28,7 +28,11 @@ const electronAPI = {
       'package:install',
       'package:uninstall',
       'package:clear',
-      'testcase:crud',
+      'testcase:list',
+      'testcase:get',
+      'testcase:create',
+      'testcase:update',
+      'testcase:delete',
       'testcase:execute',
       'testcase:record:start',
       'testcase:record:stop',
@@ -37,6 +41,10 @@ const electronAPI = {
       'config:set',
       'plugin:crud',
       'portproxy:crud',
+      'network:intercept:set-enabled',
+      'network:intercept:get-enabled',
+      'network:intercept:set-rules',
+      'network:intercept:get-rules',
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, ...args);
@@ -49,6 +57,9 @@ const electronAPI = {
       'device:changed',
       'cdp:screencast:frame',
       'cdp:network:request',
+      'cdp:network:response',
+      'cdp:network:response-body',
+      'cdp:network:event',
       'testcase:record:step',
       'log:stream',
       'config:changed',
