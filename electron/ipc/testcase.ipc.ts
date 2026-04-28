@@ -11,6 +11,15 @@ import {
   deleteTestCase,
 } from '../db/database';
 
+let currentMainWindow: BrowserWindow | null = null;
+let handlersRegistered = false;
+
+function forwardRecordingStep(step: any) {
+  if (currentMainWindow) {
+    currentMainWindow.webContents.send('testcase:record:step', step);
+  }
+}
+
 export function registerTestcaseIpc(
   testEngine: TestEngine,
   recorder: Recorder,
@@ -18,104 +27,108 @@ export function registerTestcaseIpc(
   cdpPool: CdpPool,
   mainWindow: BrowserWindow,
 ) {
-  // Get all test cases
-  ipcMain.handle('testcase:list', async () => {
-    const rows = getAllTestCases();
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      author: row.author,
-      deviceId: row.device_id,
-      steps: typeof row.steps === 'string' ? JSON.parse(row.steps) : (row.steps || []),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
-  });
+  currentMainWindow = mainWindow;
 
-  // Get a single test case
-  ipcMain.handle('testcase:get', async (_event, id: string) => {
-    const row = getTestCase(id);
-    if (!row) return null;
-    return {
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      author: row.author,
-      deviceId: row.device_id,
-      steps: typeof row.steps === 'string' ? JSON.parse(row.steps) : (row.steps || []),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
-  });
+  if (!handlersRegistered) {
+    handlersRegistered = true;
 
-  // Create a test case
-  ipcMain.handle('testcase:create', async (_event, tc: TestCase) => {
-    createTestCase({
-      id: tc.id,
-      name: tc.name,
-      description: tc.description,
-      author: tc.author,
-      device_id: tc.deviceId || null,
-      steps: JSON.stringify(tc.steps),
-      created_at: tc.createdAt,
-      updated_at: tc.updatedAt,
+    // Get all test cases
+    ipcMain.handle('testcase:list', async () => {
+      const rows = getAllTestCases();
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        author: row.author,
+        deviceId: row.device_id,
+        steps: typeof row.steps === 'string' ? JSON.parse(row.steps) : (row.steps || []),
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
     });
-    return { success: true };
-  });
 
-  // Update a test case
-  ipcMain.handle('testcase:update', async (_event, id: string, updates: Partial<TestCase>) => {
-    const dbUpdates: any = {};
-    if (updates.name !== undefined) dbUpdates.name = updates.name;
-    if (updates.description !== undefined) dbUpdates.description = updates.description;
-    if (updates.author !== undefined) dbUpdates.author = updates.author;
-    if (updates.deviceId !== undefined) dbUpdates.device_id = updates.deviceId || null;
-    if (updates.steps !== undefined) dbUpdates.steps = JSON.stringify(updates.steps);
-    if (updates.updatedAt !== undefined) dbUpdates.updated_at = updates.updatedAt;
+    // Get a single test case
+    ipcMain.handle('testcase:get', async (_event, id: string) => {
+      const row = getTestCase(id);
+      if (!row) return null;
+      return {
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        author: row.author,
+        deviceId: row.device_id,
+        steps: typeof row.steps === 'string' ? JSON.parse(row.steps) : (row.steps || []),
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    });
 
-    if (Object.keys(dbUpdates).length > 0) {
-      updateTestCase(id, dbUpdates);
-    }
-    return { success: true };
-  });
+    // Create a test case
+    ipcMain.handle('testcase:create', async (_event, tc: TestCase) => {
+      createTestCase({
+        id: tc.id,
+        name: tc.name,
+        description: tc.description,
+        author: tc.author,
+        device_id: tc.deviceId || null,
+        steps: JSON.stringify(tc.steps),
+        created_at: tc.createdAt,
+        updated_at: tc.updatedAt,
+      });
+      return { success: true };
+    });
 
-  // Delete a test case
-  ipcMain.handle('testcase:delete', async (_event, id: string) => {
-    deleteTestCase(id);
-    return { success: true };
-  });
+    // Update a test case
+    ipcMain.handle('testcase:update', async (_event, id: string, updates: Partial<TestCase>) => {
+      const dbUpdates: any = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.author !== undefined) dbUpdates.author = updates.author;
+      if (updates.deviceId !== undefined) dbUpdates.device_id = updates.deviceId || null;
+      if (updates.steps !== undefined) dbUpdates.steps = JSON.stringify(updates.steps);
+      if (updates.updatedAt !== undefined) dbUpdates.updated_at = updates.updatedAt;
 
-  // Execute a test case
-  ipcMain.handle('testcase:execute', async (_event, testCaseOrAssignments: any, deviceId?: string) => {
-    if (Array.isArray(testCaseOrAssignments)) {
-      // Batch execution
-      const reports = await testEngine.executeBatch(testCaseOrAssignments);
-      for (const report of reports) {
-        await reportGenerator.generate(report);
+      if (Object.keys(dbUpdates).length > 0) {
+        updateTestCase(id, dbUpdates);
       }
-      return reports;
-    } else {
-      // Single execution
-      const report = await testEngine.execute(testCaseOrAssignments as TestCase, deviceId || '');
-      await reportGenerator.generate(report);
-      return report;
-    }
-  });
+      return { success: true };
+    });
 
-  // Recording functionality
-  ipcMain.handle('testcase:record:start', async (_event, deviceId: string) => {
-    const client = cdpPool.getClient(deviceId);
-    if (!client) throw new Error(`No CDP client for device: ${deviceId}`);
-    await recorder.start(client);
-  });
+    // Delete a test case
+    ipcMain.handle('testcase:delete', async (_event, id: string) => {
+      deleteTestCase(id);
+      return { success: true };
+    });
 
-  ipcMain.handle('testcase:record:stop', async () => {
-    return recorder.stop();
-  });
+    // Execute a test case
+    ipcMain.handle('testcase:execute', async (_event, testCaseOrAssignments: any, deviceId?: string) => {
+      if (Array.isArray(testCaseOrAssignments)) {
+        // Batch execution
+        const reports = await testEngine.executeBatch(testCaseOrAssignments);
+        for (const report of reports) {
+          await reportGenerator.generate(report);
+        }
+        return reports;
+      } else {
+        // Single execution
+        const report = await testEngine.execute(testCaseOrAssignments as TestCase, deviceId || '');
+        await reportGenerator.generate(report);
+        return report;
+      }
+    });
 
-  // Push recording steps
-  recorder.on('recording:step', (step: any) => {
-    mainWindow.webContents.send('testcase:record:step', step);
-  });
+    // Recording functionality
+    ipcMain.handle('testcase:record:start', async (_event, deviceId: string) => {
+      const client = cdpPool.getClient(deviceId);
+      if (!client) throw new Error(`No CDP client for device: ${deviceId}`);
+      await recorder.start(client);
+    });
+
+    ipcMain.handle('testcase:record:stop', async () => {
+      return recorder.stop();
+    });
+
+    // Push recording steps
+    recorder.on('recording:step', forwardRecordingStep);
+  }
 }

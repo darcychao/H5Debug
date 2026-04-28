@@ -23,6 +23,7 @@ import { registerPortProxyIpc } from './ipc/portproxy.ipc';
 import { initDatabase, closeDatabase } from './db/database';
 
 let mainWindow: BrowserWindow | null = null;
+let ipcRegistered = false;
 
 // Initialize services
 const configManager = new ConfigManager(
@@ -77,16 +78,12 @@ function createWindow() {
     show: false,
   });
 
-  // Register IPC handlers - register EARLY before loading any content
+  // Register IPC handlers that need mainWindow
   registerDeviceIpc(deviceManager, cdpPool, mainWindow);
   registerCdpIpc(cdpPool, mainWindow);
   registerNetworkIpc(cdpPool, mainWindow);
-  registerPackageIpc(packageManager);
   registerTestcaseIpc(testEngine, recorder, reportGenerator, cdpPool, mainWindow);
   registerLogIpc(deviceManager, mainWindow);
-  registerConfigIpc(configManager);
-  registerPluginIpc(pluginManager);
-  registerPortProxyIpc();
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
@@ -113,6 +110,15 @@ app.whenReady().then(async () => {
     await initDatabase();
   } catch (err) {
     console.error('Failed to initialize database:', err);
+  }
+
+  // Register IPC handlers that don't need mainWindow first (only once)
+  if (!ipcRegistered) {
+    ipcRegistered = true;
+    registerPackageIpc(packageManager);
+    registerConfigIpc(configManager);
+    registerPluginIpc(pluginManager);
+    registerPortProxyIpc();
   }
 
   createWindow();
