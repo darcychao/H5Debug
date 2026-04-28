@@ -1,6 +1,43 @@
 import * as path from 'path';
 import * as fs from 'fs';
 
+// Network record types
+export interface NetworkRecordRow {
+  id: string;
+  request_id: string;
+  url: string;
+  method: string;
+  headers: string;
+  post_data: string | null;
+  resource_type: string;
+  status: number;
+  status_text: string;
+  response_headers: string;
+  response_body: string | null;
+  timestamp: number;
+}
+
+// Console override types
+export interface ConsoleOverrideRow {
+  id: string;
+  method_name: string;
+  override_code: string;
+  description: string;
+  enabled: number;
+  created_at: number;
+}
+
+// Plugin types
+export interface PluginRow {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  enabled: number;
+  installed_at: number;
+}
+
 type Database = any;
 type SqlJsStatic = any;
 
@@ -35,6 +72,7 @@ function saveToDisk(): void {
   const data = db.export();
   const buffer = Buffer.from(data);
   fs.writeFileSync(getDbPath(), buffer);
+  console.log('[Database] Saved to disk:', getDbPath());
 }
 
 export async function initDatabase(): Promise<void> {
@@ -69,6 +107,7 @@ export async function initDatabase(): Promise<void> {
     let fileBuffer: Uint8Array | undefined;
     if (fs.existsSync(dbPath)) {
       fileBuffer = fs.readFileSync(dbPath);
+      console.log('[Database] Loaded existing database');
     }
 
     db = new sql.Database(fileBuffer);
@@ -166,28 +205,53 @@ export function closeDatabase(): void {
   }
 }
 
+// Helper to run prepared statements (sql.js style)
+function run(sql: string, params: any[] = []): void {
+  if (!db) return;
+  const stmt = db.prepare(sql);
+  stmt.bind(params);
+  stmt.step();
+  stmt.free();
+}
+
 // Test case repository functions
-export function getAllTestCases(): any[] {
+export interface TestCaseRow {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  device_id: string | null;
+  steps: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export function getAllTestCases(): TestCaseRow[] {
   if (!db) {
     console.warn('[Database] getAllTestCases called but database not initialized');
     return [];
   }
 
   try {
-    const stmt = db.prepare('SELECT * FROM testcase ORDER BY updated_at DESC');
-    const rows: any[] = [];
-    while (stmt.step()) {
-      rows.push(stmt.getAsObject());
-    }
-    stmt.free();
-    return rows;
+    const results = db.exec('SELECT * FROM testcase ORDER BY updated_at DESC');
+    if (results.length === 0) return [];
+    return results[0].values.map((row: any[]) => ({
+      id: row[0] as string,
+      name: row[1] as string,
+      description: row[2] as string,
+      author: row[3] as string,
+      device_id: row[4] as string | null,
+      steps: row[5] as string,
+      created_at: row[6] as number,
+      updated_at: row[7] as number,
+    }));
   } catch (err) {
     console.error('[Database] getAllTestCases error:', err);
     return [];
   }
 }
 
-export function getTestCase(id: string): any | null {
+export function getTestCase(id: string): TestCaseRow | null {
   if (!db) {
     console.warn('[Database] getTestCase called but database not initialized');
     return null;
@@ -196,9 +260,19 @@ export function getTestCase(id: string): any | null {
   try {
     const stmt = db.prepare('SELECT * FROM testcase WHERE id = ?');
     stmt.bind([id]);
-    let row: any = null;
+    let row: TestCaseRow | null = null;
     if (stmt.step()) {
-      row = stmt.getAsObject();
+      const values = stmt.get();
+      row = {
+        id: values[0],
+        name: values[1],
+        description: values[2],
+        author: values[3],
+        device_id: values[4],
+        steps: values[5],
+        created_at: values[6],
+        updated_at: values[7],
+      };
     }
     stmt.free();
     return row;
@@ -208,35 +282,25 @@ export function getTestCase(id: string): any | null {
   }
 }
 
-export function createTestCase(tc: any): void {
+export function createTestCase(tc: TestCaseRow): void {
   if (!db) {
     console.warn('[Database] createTestCase called but database not initialized');
     return;
   }
 
   try {
-    const stmt = db.prepare(`
-      INSERT INTO testcase (id, name, description, author, device_id, steps, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run([
-      tc.id,
-      tc.name,
-      tc.description,
-      tc.author,
-      tc.device_id,
-      tc.steps,
-      tc.created_at,
-      tc.updated_at,
-    ]);
-    stmt.free();
+    run(
+      'INSERT INTO testcase (id, name, description, author, device_id, steps, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [tc.id, tc.name, tc.description, tc.author, tc.device_id, tc.steps, tc.created_at, tc.updated_at],
+    );
     saveToDisk();
+    console.log('[Database] Created test case:', tc.id);
   } catch (err) {
     console.error('[Database] createTestCase error:', err);
   }
 }
 
-export function updateTestCase(id: string, updates: any): void {
+export function updateTestCase(id: string, updates: Partial<TestCaseRow>): void {
   if (!db) {
     console.warn('[Database] updateTestCase called but database not initialized');
     return;
@@ -259,10 +323,9 @@ export function updateTestCase(id: string, updates: any): void {
     values.push(Date.now());
     values.push(id);
 
-    const stmt = db.prepare(`UPDATE testcase SET ${fields.join(', ')} WHERE id = ?`);
-    stmt.run(values);
-    stmt.free();
+    run(`UPDATE testcase SET ${fields.join(', ')} WHERE id = ?`, values);
     saveToDisk();
+    console.log('[Database] Updated test case:', id);
   } catch (err) {
     console.error('[Database] updateTestCase error:', err);
   }
@@ -275,11 +338,237 @@ export function deleteTestCase(id: string): void {
   }
 
   try {
-    const stmt = db.prepare('DELETE FROM testcase WHERE id = ?');
-    stmt.run([id]);
-    stmt.free();
+    run('DELETE FROM testcase WHERE id = ?', [id]);
     saveToDisk();
+    console.log('[Database] Deleted test case:', id);
   } catch (err) {
     console.error('[Database] deleteTestCase error:', err);
+  }
+}
+
+// Network record functions
+export function insertNetworkRecord(record: NetworkRecordRow): void {
+  if (!db) {
+    console.warn('[Database] insertNetworkRecord called but database not initialized');
+    return;
+  }
+
+  try {
+    run(
+      `INSERT INTO network_record (id, request_id, url, method, headers, post_data, resource_type, status, status_text, response_headers, response_body, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [record.id, record.request_id, record.url, record.method, record.headers, record.post_data,
+       record.resource_type, record.status, record.status_text, record.response_headers, record.response_body, record.timestamp],
+    );
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] insertNetworkRecord error:', err);
+  }
+}
+
+export function getNetworkRecords(limit = 500): NetworkRecordRow[] {
+  if (!db) {
+    console.warn('[Database] getNetworkRecords called but database not initialized');
+    return [];
+  }
+
+  try {
+    // sql.js exec doesn't support parameters for LIMIT, use string safely
+    const results = db.exec(`SELECT * FROM network_record ORDER BY timestamp DESC LIMIT ${limit}`);
+    if (results.length === 0) return [];
+    return results[0].values.map((row: any[]) => ({
+      id: row[0] as string,
+      request_id: row[1] as string,
+      url: row[2] as string,
+      method: row[3] as string,
+      headers: row[4] as string,
+      post_data: row[5] as string | null,
+      resource_type: row[6] as string,
+      status: row[7] as number,
+      status_text: row[8] as string,
+      response_headers: row[9] as string,
+      response_body: row[10] as string | null,
+      timestamp: row[11] as number,
+    }));
+  } catch (err) {
+    console.error('[Database] getNetworkRecords error:', err);
+    return [];
+  }
+}
+
+export function clearNetworkRecords(): void {
+  if (!db) {
+    console.warn('[Database] clearNetworkRecords called but database not initialized');
+    return;
+  }
+
+  try {
+    run('DELETE FROM network_record');
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] clearNetworkRecords error:', err);
+  }
+}
+
+// Console override functions
+export function getAllOverrides(): ConsoleOverrideRow[] {
+  if (!db) {
+    console.warn('[Database] getAllOverrides called but database not initialized');
+    return [];
+  }
+
+  try {
+    const results = db.exec('SELECT * FROM console_override ORDER BY created_at');
+    if (results.length === 0) return [];
+    return results[0].values.map((row: any[]) => ({
+      id: row[0] as string,
+      method_name: row[1] as string,
+      override_code: row[2] as string,
+      description: row[3] as string,
+      enabled: row[4] as number,
+      created_at: row[5] as number,
+    }));
+  } catch (err) {
+    console.error('[Database] getAllOverrides error:', err);
+    return [];
+  }
+}
+
+export function insertOverride(override: ConsoleOverrideRow): void {
+  if (!db) {
+    console.warn('[Database] insertOverride called but database not initialized');
+    return;
+  }
+
+  try {
+    run(
+      'INSERT INTO console_override (id, method_name, override_code, description, enabled, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [override.id, override.method_name, override.override_code, override.description, override.enabled, override.created_at],
+    );
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] insertOverride error:', err);
+  }
+}
+
+export function updateOverride(id: string, updates: Partial<ConsoleOverrideRow>): void {
+  if (!db) {
+    console.warn('[Database] updateOverride called but database not initialized');
+    return;
+  }
+
+  try {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'id') continue;
+      fields.push(`${key} = ?`);
+      values.push(value);
+    }
+
+    if (fields.length === 0) return;
+    values.push(id);
+
+    run(`UPDATE console_override SET ${fields.join(', ')} WHERE id = ?`, values);
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] updateOverride error:', err);
+  }
+}
+
+export function deleteOverride(id: string): void {
+  if (!db) {
+    console.warn('[Database] deleteOverride called but database not initialized');
+    return;
+  }
+
+  try {
+    run('DELETE FROM console_override WHERE id = ?', [id]);
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] deleteOverride error:', err);
+  }
+}
+
+// Plugin functions
+export function getAllPlugins(): PluginRow[] {
+  if (!db) {
+    console.warn('[Database] getAllPlugins called but database not initialized');
+    return [];
+  }
+
+  try {
+    const results = db.exec('SELECT * FROM plugin ORDER BY installed_at');
+    if (results.length === 0) return [];
+    return results[0].values.map((row: any[]) => ({
+      id: row[0] as string,
+      name: row[1] as string,
+      version: row[2] as string,
+      description: row[3] as string,
+      author: row[4] as string,
+      enabled: row[5] as number,
+      installed_at: row[6] as number,
+    }));
+  } catch (err) {
+    console.error('[Database] getAllPlugins error:', err);
+    return [];
+  }
+}
+
+export function insertPlugin(plugin: PluginRow): void {
+  if (!db) {
+    console.warn('[Database] insertPlugin called but database not initialized');
+    return;
+  }
+
+  try {
+    run(
+      'INSERT INTO plugin (id, name, version, description, author, enabled, installed_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [plugin.id, plugin.name, plugin.version, plugin.description, plugin.author, plugin.enabled, plugin.installed_at],
+    );
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] insertPlugin error:', err);
+  }
+}
+
+export function updatePlugin(id: string, updates: Partial<PluginRow>): void {
+  if (!db) {
+    console.warn('[Database] updatePlugin called but database not initialized');
+    return;
+  }
+
+  try {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'id') continue;
+      fields.push(`${key} = ?`);
+      values.push(value);
+    }
+
+    if (fields.length === 0) return;
+    values.push(id);
+
+    run(`UPDATE plugin SET ${fields.join(', ')} WHERE id = ?`, values);
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] updatePlugin error:', err);
+  }
+}
+
+export function deletePlugin(id: string): void {
+  if (!db) {
+    console.warn('[Database] deletePlugin called but database not initialized');
+    return;
+  }
+
+  try {
+    run('DELETE FROM plugin WHERE id = ?', [id]);
+    saveToDisk();
+  } catch (err) {
+    console.error('[Database] deletePlugin error:', err);
   }
 }
