@@ -1,6 +1,8 @@
-import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 import * as path from 'path';
 import * as fs from 'fs';
+
+type Database = any;
+type SqlJsStatic = any;
 
 let sql: SqlJsStatic | null = null;
 let db: Database | null = null;
@@ -39,11 +41,25 @@ export async function initDatabase(): Promise<void> {
   if (dbInitialized) return;
 
   try {
-    // Initialize sql.js
+    // Initialize sql.js - load safely
     if (!sql) {
-      sql = await initSqlJs({
-        locateFile: (file) => path.join(__dirname, '../node_modules/sql.js/dist', file),
-      });
+      // Save original module/exports
+      const originalModule = (global as any).module;
+      const originalExports = (global as any).exports;
+
+      try {
+        // Try to load sql.js
+        const initSqlJs = require('sql.js');
+        sql = await initSqlJs();
+      } finally {
+        // Restore original
+        if (originalModule !== undefined) {
+          (global as any).module = originalModule;
+        }
+        if (originalExports !== undefined) {
+          (global as any).exports = originalExports;
+        }
+      }
     }
 
     const dbPath = getDbPath();

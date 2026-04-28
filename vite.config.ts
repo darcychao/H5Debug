@@ -14,7 +14,7 @@ export default defineConfig({
           build: {
             outDir: 'dist/electron',
             rollupOptions: {
-              external: ['chrome-remote-interface', 'chokidar'],
+              external: ['chrome-remote-interface', 'chokidar', 'sql.js'],
             },
           },
         },
