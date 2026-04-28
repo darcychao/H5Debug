@@ -16,7 +16,7 @@ const CaseList: React.FC<CaseListProps> = ({ onSelect, activeCaseId }) => {
   const handleCreate = () => {
     const tc: TestCase = {
       id: crypto.randomUUID(),
-      name: t('testcase.new'),
+      name: '',
       description: '',
       author: '',
       steps: [],
@@ -43,7 +43,7 @@ const CaseList: React.FC<CaseListProps> = ({ onSelect, activeCaseId }) => {
             className={`device-item ${tc.id === activeCaseId ? 'device-item--active' : ''}`}
             onClick={() => onSelect(tc)}
           >
-            <span className="device-item-name">{tc.name}</span>
+            <span className="device-item-name">{tc.name || t('testcase.new')}</span>
             <span className="device-item-id">{tc.steps.length} {t('testcase.steps')}</span>
             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); deleteTestCase(tc.id); }}>{t('testcase.del')}</Button>
           </div>

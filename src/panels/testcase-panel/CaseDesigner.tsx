@@ -26,14 +26,14 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase, dev
   if (!testCase) {
     return (
       <Card title={t('testcase.caseDesigner')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-xl)', minHeight: 200 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-xl)', flex: 1, minHeight: 300 }}>
           <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center' }}>
             {t('testcase.selectToDesign')}
           </div>
           <Button size="md" variant="primary" onClick={() => {
             const tc: TestCase = {
               id: crypto.randomUUID(),
-              name: t('testcase.new'),
+              name: '',
               description: '',
               author: '',
               steps: [],
@@ -86,19 +86,27 @@ const CaseDesigner: React.FC<CaseDesignerProps> = ({ testCase, onCreateCase, dev
 
   return (
     <Card
-      title={testCase.name}
+      title={testCase.name || t('testcase.caseDesigner')}
       headerActions={
         <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
-          <Input value={testCase.name} onChange={(e) => updateTestCase(testCase.id, { name: (e.target as HTMLInputElement).value })} style={{ width: 150 }} />
+          <Input
+            value={testCase.name}
+            onChange={(e) => updateTestCase(testCase.id, { name: (e.target as HTMLInputElement).value })}
+            style={{ width: 180 }}
+            placeholder={t('testcase.new')}
+          />
           <Button size="sm" variant="primary" onClick={() => handleAddStep(testCase.steps.length - 1)}>{t('testcase.addStep')}</Button>
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-        <div style={{ flexShrink: 0 }}>
-          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-sm)' }}>
-            {testCase.description}
-          </div>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 300 }}>
+        <div style={{ flexShrink: 0, marginBottom: 'var(--spacing-sm)' }}>
+          <Input
+            label={t('testcase.description')}
+            value={testCase.description}
+            onChange={(e) => updateTestCase(testCase.id, { description: (e.target as HTMLInputElement).value })}
+            placeholder="Add description..."
+          />
         </div>
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           {testCase.steps.length === 0 ? (

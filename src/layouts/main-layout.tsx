@@ -82,11 +82,13 @@ const MainLayout: React.FC = () => {
               key: 'testcase',
               label: t('nav.testcase'),
               content: (
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                  <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+                  <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                     <CaseDesigner testCase={activeTestCase} onCreateCase={setActiveTestCase} deviceId={activeDeviceId} />
                   </div>
-                  <ExecutionPanel testCase={activeTestCase} />
+                  <div style={{ flexShrink: 0 }}>
+                    <ExecutionPanel testCase={activeTestCase} />
+                  </div>
                 </div>
               ),
             },

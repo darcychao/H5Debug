@@ -68,7 +68,7 @@ const ExecutionPanel: React.FC<ExecutionPanelProps> = ({ testCase }) => {
     <Card title={t('testcase.execution')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
         <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
-          {testCase.name} — {testCase.steps.length} {t('testcase.steps')}
+          {testCase.name || t('testcase.new')} — {testCase.steps.length} {t('testcase.steps')}
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
