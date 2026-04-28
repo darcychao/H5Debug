@@ -11,10 +11,21 @@ interface ThemeState {
 const THEME_STORAGE_KEY = 'h5debug-color-theme';
 const STYLE_STORAGE_KEY = 'h5debug-design-style';
 
+// Cache the last state to avoid returning new objects
+let lastState: ThemeState | null = null;
+
 function getThemeState(): ThemeState {
   const colorTheme = (document.documentElement.getAttribute('data-theme') as ColorTheme) || 'dark';
   const designStyle = (document.documentElement.getAttribute('data-style') as DesignStyle) || 'pixel';
-  return { colorTheme, designStyle };
+
+  // Return cached state if values haven't changed
+  if (lastState && lastState.colorTheme === colorTheme && lastState.designStyle === designStyle) {
+    return lastState;
+  }
+
+  // Create and cache new state
+  lastState = { colorTheme, designStyle };
+  return lastState;
 }
 
 function setColorTheme(colorTheme: ColorTheme) {
@@ -37,22 +48,22 @@ function subscribe(callback: () => void) {
 }
 
 export function useTheme() {
-  const { colorTheme, designStyle } = useSyncExternalStore(subscribe, getThemeState);
+  const state = useSyncExternalStore(subscribe, getThemeState);
 
   const toggleColorTheme = () => {
     const themes: ColorTheme[] = ['dark', 'light', 'blue', 'yellow'];
-    const currentIndex = themes.indexOf(colorTheme);
+    const currentIndex = themes.indexOf(state.colorTheme);
     const nextIndex = (currentIndex + 1) % themes.length;
     setColorTheme(themes[nextIndex]);
   };
 
   const toggleDesignStyle = () => {
-    setDesignStyle(designStyle === 'pixel' ? 'modern' : 'pixel');
+    setDesignStyle(state.designStyle === 'pixel' ? 'modern' : 'pixel');
   };
 
   return {
-    colorTheme,
-    designStyle,
+    colorTheme: state.colorTheme,
+    designStyle: state.designStyle,
     setColorTheme,
     setDesignStyle,
     toggleColorTheme,
