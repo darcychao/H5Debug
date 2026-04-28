@@ -1,8 +1,9 @@
-import Database from 'better-sqlite3';
+import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 import * as path from 'path';
 import * as fs from 'fs';
 
-let db: Database.Database | null = null;
+let sql: SqlJsStatic | null = null;
+let db: Database | null = null;
 let dbInitialized = false;
 
 // Get data directory
@@ -26,18 +27,40 @@ function getDbPath(): string {
   return path.join(dataDir, 'h5debug.db');
 }
 
+// Save database to disk
+function saveToDisk(): void {
+  if (!db) return;
+  const data = db.export();
+  const buffer = Buffer.from(data);
+  fs.writeFileSync(getDbPath(), buffer);
+}
+
 export async function initDatabase(): Promise<void> {
   if (dbInitialized) return;
+
+  // Initialize sql.js
+  if (!sql) {
+    sql = await initSqlJs({
+      locateFile: (file) => path.join(__dirname, '../node_modules/sql.js/dist', file),
+    });
+  }
 
   const dbPath = getDbPath();
   console.log('[Database] Opening database at:', dbPath);
 
-  db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
-  db.pragma('busy_timeout = 5000');
+  // Load existing database or create new
+  let fileBuffer: Uint8Array | undefined;
+  if (fs.existsSync(dbPath)) {
+    fileBuffer = fs.readFileSync(dbPath);
+  }
+
+  db = new sql.Database(fileBuffer);
 
   // Create tables
   runMigrations();
+
+  // Save initial state
+  saveToDisk();
 
   dbInitialized = true;
 }
@@ -103,7 +126,7 @@ function runMigrations(): void {
   `);
 }
 
-export function getDatabase(): Database.Database {
+export function getDatabase(): Database {
   if (!db) {
     throw new Error('Database not initialized');
   }
@@ -111,12 +134,12 @@ export function getDatabase(): Database.Database {
 }
 
 export function saveDatabase(): void {
-  // better-sqlite3 WAL mode automatically persists
+  saveToDisk();
 }
 
 export function closeDatabase(): void {
   if (db) {
-    db.pragma('analysis_limit = 0');
+    saveToDisk();
     db.close();
     db = null;
     dbInitialized = false;
@@ -125,27 +148,38 @@ export function closeDatabase(): void {
 
 // Test case repository functions
 export function getAllTestCases(): any[] {
-  if (!db) initDatabase();
+  if (!db) throw new Error('Database not initialized');
 
   const stmt = db.prepare('SELECT * FROM testcase ORDER BY updated_at DESC');
-  return stmt.all();
+  const rows: any[] = [];
+  while (stmt.step()) {
+    rows.push(stmt.getAsObject());
+  }
+  stmt.free();
+  return rows;
 }
 
 export function getTestCase(id: string): any | null {
-  if (!db) initDatabase();
+  if (!db) throw new Error('Database not initialized');
 
   const stmt = db.prepare('SELECT * FROM testcase WHERE id = ?');
-  return stmt.get(id) || null;
+  stmt.bind([id]);
+  let row: any = null;
+  if (stmt.step()) {
+    row = stmt.getAsObject();
+  }
+  stmt.free();
+  return row;
 }
 
 export function createTestCase(tc: any): void {
-  if (!db) initDatabase();
+  if (!db) throw new Error('Database not initialized');
 
   const stmt = db.prepare(`
     INSERT INTO testcase (id, name, description, author, device_id, steps, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  stmt.run(
+  stmt.run([
     tc.id,
     tc.name,
     tc.description,
@@ -153,12 +187,14 @@ export function createTestCase(tc: any): void {
     tc.device_id,
     tc.steps,
     tc.created_at,
-    tc.updated_at
-  );
+    tc.updated_at,
+  ]);
+  stmt.free();
+  saveToDisk();
 }
 
 export function updateTestCase(id: string, updates: any): void {
-  if (!db) initDatabase();
+  if (!db) throw new Error('Database not initialized');
 
   const fields: string[] = [];
   const values: any[] = [];
@@ -177,12 +213,16 @@ export function updateTestCase(id: string, updates: any): void {
   values.push(id);
 
   const stmt = db.prepare(`UPDATE testcase SET ${fields.join(', ')} WHERE id = ?`);
-  stmt.run(...values);
+  stmt.run(values);
+  stmt.free();
+  saveToDisk();
 }
 
 export function deleteTestCase(id: string): void {
-  if (!db) initDatabase();
+  if (!db) throw new Error('Database not initialized');
 
   const stmt = db.prepare('DELETE FROM testcase WHERE id = ?');
-  stmt.run(id);
+  stmt.run([id]);
+  stmt.free();
+  saveToDisk();
 }
