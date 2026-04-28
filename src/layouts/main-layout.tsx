@@ -30,7 +30,7 @@ import './main-layout.css';
 
 const MainLayout: React.FC = () => {
   const { t } = useTranslation();
-  const { theme, toggle } = useTheme();
+  const { colorTheme, toggleColorTheme } = useTheme();
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
   const [activeTestCase, setActiveTestCase] = useState<any>(null);
   const [selectedSelector, setSelectedSelector] = useState<string>('');
@@ -122,8 +122,8 @@ const MainLayout: React.FC = () => {
           <span className="header-status">
             {activeDeviceId ? `${t('footer.active')}: ${activeDeviceId}` : t('header.noDevice')}
           </span>
-          <Button variant="ghost" size="sm" onClick={toggle}>
-            {theme === 'dark' ? t('header.light') : t('header.dark')}
+          <Button variant="ghost" size="sm" onClick={toggleColorTheme}>
+            {colorTheme === 'dark' ? t('header.light') : t('header.dark')}
           </Button>
         </div>
       </header>

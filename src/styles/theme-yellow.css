@@ -1,0 +1,38 @@
+[data-theme='yellow'] {
+  --color-bg-primary: #fffbeb;
+  --color-bg-secondary: #fef3c7;
+  --color-bg-tertiary: #fde68a;
+  --color-bg-hover: #fcd34d;
+
+  --color-text-primary: #292524;
+  --color-text-secondary: #44403c;
+  --color-text-muted: #78716c;
+
+  --color-accent: #d97706;
+  --color-accent-hover: #b45309;
+  --color-accent-yellow: #ca8a04;
+  --color-accent-yellow-hover: #a16207;
+
+  --color-border: #fbbf24;
+  --color-border-hover: #f59e0b;
+
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-info: #0284c7;
+
+  --color-glass-bg: rgba(255, 251, 235, 0.7);
+  --color-glass-border: rgba(251, 191, 36, 0.5);
+
+  --color-input-bg: #fffbeb;
+  --color-input-border: #fbbf24;
+  --color-input-focus: #d97706;
+
+  --color-scrollbar-bg: #fef3c7;
+  --color-scrollbar-thumb: #fbbf24;
+}
+
+[data-theme='yellow'][data-style='modern'] {
+  --color-glass-bg: rgba(255, 251, 235, 0.65);
+  --color-glass-border: rgba(251, 191, 36, 0.4);
+}

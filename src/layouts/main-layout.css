@@ -122,3 +122,30 @@
   height: 100%;
   gap: var(--spacing-sm);
 }
+
+/* Modern style layout enhancements */
+[data-style='modern'] .main-logo {
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 700;
+}
+
+[data-style='modern'] .main-header {
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+[data-style='modern'] .main-sidebar,
+[data-style='modern'] .main-console-area,
+[data-style='modern'] .main-right-panel {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-glass-border);
+}
+
+[data-style='modern'] .main-footer {
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+

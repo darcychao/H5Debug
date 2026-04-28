@@ -31,3 +31,38 @@
   --color-scrollbar-bg: #1a1a2e;
   --color-scrollbar-thumb: #3a3a5c;
 }
+
+/* Modern style dark theme - sleek black with glassmorphism */
+[data-theme='dark'][data-style='modern'] {
+  --color-bg-primary: #020617;
+  --color-bg-secondary: #0f172a;
+  --color-bg-tertiary: #1e293b;
+  --color-bg-hover: #334155;
+
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #64748b;
+
+  --color-accent: #38bdf8;
+  --color-accent-hover: #0ea5e9;
+  --color-accent-yellow: #fbbf24;
+  --color-accent-yellow-hover: #f59e0b;
+
+  --color-border: #334155;
+  --color-border-hover: #475569;
+
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #f43f5e;
+  --color-info: #38bdf8;
+
+  --color-glass-bg: rgba(15, 23, 42, 0.65);
+  --color-glass-border: rgba(51, 65, 85, 0.5);
+
+  --color-input-bg: #0f172a;
+  --color-input-border: #334155;
+  --color-input-focus: #38bdf8;
+
+  --color-scrollbar-bg: #1e293b;
+  --color-scrollbar-thumb: #475569;
+}

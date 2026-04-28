@@ -31,3 +31,38 @@
   --color-scrollbar-bg: #e0e0d4;
   --color-scrollbar-thumb: #a0a094;
 }
+
+/* Modern style light theme - clean white */
+[data-theme='light'][data-style='modern'] {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-bg-hover: #e2e8f0;
+
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-accent-yellow: #f59e0b;
+  --color-accent-yellow-hover: #d97706;
+
+  --color-border: #e2e8f0;
+  --color-border-hover: #cbd5e1;
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  --color-glass-bg: rgba(255, 255, 255, 0.65);
+  --color-glass-border: rgba(226, 232, 240, 0.5);
+
+  --color-input-bg: #ffffff;
+  --color-input-border: #e2e8f0;
+  --color-input-focus: #3b82f6;
+
+  --color-scrollbar-bg: #f1f5f9;
+  --color-scrollbar-thumb: #cbd5e1;
+}

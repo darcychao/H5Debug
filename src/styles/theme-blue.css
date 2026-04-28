@@ -1,0 +1,38 @@
+[data-theme='blue'] {
+  --color-bg-primary: #f0f7ff;
+  --color-bg-secondary: #e0efff;
+  --color-bg-tertiary: #d0e8ff;
+  --color-bg-hover: #c0dfff;
+
+  --color-text-primary: #0a1628;
+  --color-text-secondary: #2d3a4f;
+  --color-text-muted: #6b7a90;
+
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-yellow: #f59e0b;
+  --color-accent-yellow-hover: #d97706;
+
+  --color-border: #93c5fd;
+  --color-border-hover: #60a5fa;
+
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+  --color-info: #2563eb;
+
+  --color-glass-bg: rgba(240, 247, 255, 0.7);
+  --color-glass-border: rgba(147, 197, 253, 0.5);
+
+  --color-input-bg: #f0f7ff;
+  --color-input-border: #93c5fd;
+  --color-input-focus: #2563eb;
+
+  --color-scrollbar-bg: #e0efff;
+  --color-scrollbar-thumb: #93c5fd;
+}
+
+[data-theme='blue'][data-style='modern'] {
+  --color-glass-bg: rgba(240, 247, 255, 0.65);
+  --color-glass-border: rgba(147, 197, 253, 0.4);
+}

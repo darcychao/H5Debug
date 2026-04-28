@@ -42,3 +42,24 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Modern style card enhancements */
+[data-style='modern'] .pixel-card {
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-color: var(--color-glass-border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+[data-style='modern'] .pixel-card-header {
+  border-bottom-color: var(--color-glass-border);
+}
+
+[data-style='modern'] .pixel-card-title {
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+

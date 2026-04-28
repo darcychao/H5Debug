@@ -5,13 +5,27 @@ import Input from '../../components/pixel-ui/Input';
 import Toggle from '../../components/pixel-ui/Toggle';
 import Select from '../../components/pixel-ui/Select';
 import Button from '../../components/pixel-ui/Button';
+import { useTheme, ColorTheme, DesignStyle } from '../../hooks/useTheme';
 
 const Settings: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { colorTheme, designStyle, setColorTheme, setDesignStyle } = useTheme();
+
+  const colorThemeOptions = [
+    { value: 'dark' as ColorTheme, label: t('settings.themeDark') },
+    { value: 'light' as ColorTheme, label: t('settings.themeLight') },
+    { value: 'blue' as ColorTheme, label: t('settings.themeBlue') },
+    { value: 'yellow' as ColorTheme, label: t('settings.themeYellow') },
+  ];
+
+  const designStyleOptions = [
+    { value: 'pixel' as DesignStyle, label: t('settings.stylePixel') },
+    { value: 'modern' as DesignStyle, label: t('settings.styleModern') },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-      <Card title={t('settings.title')}>
+      <Card title={t('settings.appearance')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
           <Select
             label={t('settings.language')}
@@ -21,6 +35,18 @@ const Settings: React.FC = () => {
               { value: 'zh-CN', label: '简体中文' },
             ]}
             onChange={(v) => i18n.changeLanguage(v as string)}
+          />
+          <Select
+            label={t('settings.colorTheme')}
+            value={colorTheme}
+            options={colorThemeOptions}
+            onChange={(v) => setColorTheme(v as ColorTheme)}
+          />
+          <Select
+            label={t('settings.designStyle')}
+            value={designStyle}
+            options={designStyleOptions}
+            onChange={(v) => setDesignStyle(v as DesignStyle)}
           />
         </div>
       </Card>

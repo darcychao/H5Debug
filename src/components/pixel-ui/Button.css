@@ -78,3 +78,34 @@
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
 }
+
+/* Modern style button enhancements */
+[data-style='modern'] .pixel-btn {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+[data-style='modern'] .pixel-btn--primary {
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+[data-style='modern'] .pixel-btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+[data-style='modern'] .pixel-btn--secondary {
+  background: var(--color-bg-secondary);
+}
+
+[data-style='modern'] .pixel-btn--danger {
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+[data-style='modern'] .pixel-btn--danger:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
