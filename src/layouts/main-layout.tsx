@@ -20,6 +20,7 @@ import ProxyRuleList from '../panels/port-proxy-panel/ProxyRuleList';
 import CaseList from '../panels/testcase-panel/CaseList';
 import CaseDesigner from '../panels/testcase-panel/CaseDesigner';
 import ExecutionPanel from '../panels/testcase-panel/ExecutionPanel';
+import { useTestcaseStore } from '../stores/testcase.store';
 import SelectorPicker from '../panels/testcase-panel/SelectorPicker';
 import Recorder from '../panels/testcase-panel/Recorder';
 import ReportViewer from '../panels/report-panel/ReportViewer';
@@ -32,7 +33,8 @@ const MainLayout: React.FC = () => {
   const { t } = useTranslation();
   const { colorTheme, toggleColorTheme } = useTheme();
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
-  const [activeTestCase, setActiveTestCase] = useState<any>(null);
+  const [activeTestCaseId, setActiveTestCaseId] = useState<string | null>(null);
+  const activeTestCase = useTestcaseStore((s) => s.testCases.find((tc) => tc.id === activeTestCaseId) ?? null);
   const [selectedSelector, setSelectedSelector] = useState<string>('');
 
   const handleSelectorSelect = (sel: string) => {
@@ -84,7 +86,7 @@ const MainLayout: React.FC = () => {
               content: (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
                   <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-                    <CaseDesigner testCase={activeTestCase} onCreateCase={setActiveTestCase} deviceId={activeDeviceId} />
+                    <CaseDesigner testCase={activeTestCase} onCreateCase={(tc) => setActiveTestCaseId(tc.id)} deviceId={activeDeviceId} />
                   </div>
                   <div style={{ flexShrink: 0 }}>
                     <ExecutionPanel testCase={activeTestCase} />
@@ -132,7 +134,7 @@ const MainLayout: React.FC = () => {
         <ResizableSplit direction="horizontal" initialRatio={0.2} minSize={160}>
           <div className="main-sidebar">
             <DeviceList onDeviceSelect={setActiveDeviceId} activeDeviceId={activeDeviceId} />
-            <CaseList onSelect={setActiveTestCase} activeCaseId={activeTestCase?.id ?? null} />
+            <CaseList onSelect={(tc) => setActiveTestCaseId(tc.id)} activeCaseId={activeTestCaseId} />
           </div>
 
           <ResizableSplit direction="horizontal" initialRatio={0.75} minSize={300}>
