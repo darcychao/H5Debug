@@ -109,7 +109,7 @@ const MainLayout: React.FC = () => {
         { key: 'network', label: t('nav.network'), content: <NetworkPanel /> },
         { key: 'log', label: t('nav.log'), content: <LogPanel /> },
         { key: 'package', label: t('nav.package'), content: <PackagePanel deviceId={activeDeviceId} /> },
-        { key: 'proxy', label: t('nav.proxy'), content: <ProxyPanel /> },
+        { key: 'proxy', label: t('nav.proxy'), content: <ProxyPanel deviceId={activeDeviceId} /> },
         { key: 'settings', label: t('nav.settings'), content: <Settings /> },
       ]}
     />
@@ -193,7 +193,7 @@ const PackagePanel: React.FC<{ deviceId: string | null }> = ({ deviceId }) => {
   );
 };
 
-const ProxyPanel: React.FC = () => <ProxyRuleList />;
+const ProxyPanel: React.FC<{ deviceId: string | null }> = ({ deviceId }) => <ProxyRuleList deviceId={deviceId} />;
 
 const PluginPanel: React.FC = () => (
   <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto', gap: 'var(--spacing-sm)' }}>

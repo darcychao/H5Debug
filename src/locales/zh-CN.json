@@ -190,7 +190,12 @@
     "deviceType": "设备类型",
     "localPort": "本地端口",
     "remotePort": "远程端口",
-    "apply": "应用"
+    "apply": "应用",
+    "remove": "移除",
+    "noDevice": "连接设备后应用代理规则",
+    "deviceTypeMismatch": "规则适用于 {{rule}} 但当前设备为 {{device}}",
+    "applyFailed": "应用规则失败",
+    "removeFailed": "移除规则失败"
   },
   "common": {
     "ok": "确定",

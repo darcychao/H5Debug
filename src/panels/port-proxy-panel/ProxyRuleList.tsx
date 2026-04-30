@@ -5,6 +5,7 @@ import Button from '../../components/pixel-ui/Button';
 import Input from '../../components/pixel-ui/Input';
 import Select from '../../components/pixel-ui/Select';
 import Modal from '../../components/pixel-ui/Modal';
+import { useDeviceStore } from '../../stores/device.store';
 
 interface ProxyRule {
   id: string;
@@ -14,23 +15,38 @@ interface ProxyRule {
   remotePort: number;
   type: 'forward' | 'reverse';
   enabled: boolean;
+  applied: boolean;
 }
 
-const ProxyRuleList: React.FC = () => {
+interface ProxyRuleListProps {
+  deviceId: string | null;
+}
+
+const ProxyRuleList: React.FC<ProxyRuleListProps> = ({ deviceId }) => {
   const { t } = useTranslation();
   const [rules, setRules] = useState<ProxyRule[]>([]);
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<ProxyRule | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
+
+  const devices = useDeviceStore((s) => s.devices.filter((d) => d.status === 'connected'));
+
+  // Parse active device: "adb:serial" or "hdc:serial"
+  const [activeDeviceType, activeDeviceSerial] = deviceId
+    ? (deviceId.includes(':') ? deviceId.split(':') : [null, null]) as [string | null, string | null]
+    : [null, null];
+  const hasActiveDevice = (activeDeviceType === 'adb' || activeDeviceType === 'hdc') && !!activeDeviceSerial;
 
   const handleAdd = () => {
     setEditing({
       id: crypto.randomUUID(),
       name: '',
-      deviceType: 'adb',
+      deviceType: (activeDeviceType === 'adb' || activeDeviceType === 'hdc') ? activeDeviceType : 'adb',
       localPort: 8080,
       remotePort: 8080,
       type: 'reverse',
       enabled: true,
+      applied: false,
     });
     setShowEditor(true);
   };
@@ -44,7 +60,7 @@ const ProxyRuleList: React.FC = () => {
     if (!editing) return;
     const existing = rules.find((r) => r.id === editing.id);
     if (existing) {
-      setRules(rules.map((r) => (r.id === editing.id ? editing : r)));
+      setRules(rules.map((r) => (r.id === editing.id ? { ...editing, applied: existing.applied } : r)));
     } else {
       setRules([...rules, editing]);
     }
@@ -52,8 +68,18 @@ const ProxyRuleList: React.FC = () => {
     setEditing(null);
   };
 
-  const handleDelete = (id: string) => {
-    setRules(rules.filter((r) => r.id !== id));
+  const handleDelete = async (rule: ProxyRule) => {
+    // Remove from device if applied
+    if (rule.applied && hasActiveDevice && window.electronAPI) {
+      try {
+        await window.electronAPI.invoke('portproxy:remove', activeDeviceSerial, activeDeviceType, {
+          type: rule.type,
+          localPort: rule.localPort,
+          remotePort: rule.remotePort,
+        });
+      } catch {}
+    }
+    setRules(rules.filter((r) => r.id !== rule.id));
   };
 
   const handleToggle = (id: string) => {
@@ -61,16 +87,53 @@ const ProxyRuleList: React.FC = () => {
   };
 
   const handleApply = async (rule: ProxyRule) => {
-    if (!window.electronAPI) return;
+    if (!window.electronAPI || !hasActiveDevice) return;
+    setApplyError(null);
+
+    // Use the rule's deviceType, but apply to the active device
+    // Check that device type matches
+    if (rule.deviceType !== activeDeviceType) {
+      setApplyError(t('proxy.deviceTypeMismatch') || `Rule is for ${rule.deviceType.toUpperCase()} but active device is ${(activeDeviceType || '').toUpperCase()}`);
+      return;
+    }
+
     try {
-      await window.electronAPI.invoke('portproxy:crud', rule.type, {
-        id: rule.id,
-        deviceType: rule.deviceType,
+      const result = await window.electronAPI.invoke('portproxy:apply', activeDeviceSerial, activeDeviceType, {
+        type: rule.type,
         localPort: rule.localPort,
         remotePort: rule.remotePort,
-      });
+      }) as { success: boolean; error?: string };
+
+      if (result?.success) {
+        setRules(rules.map((r) => r.id === rule.id ? { ...r, applied: true } : r));
+      } else {
+        setApplyError(result?.error || t('proxy.applyFailed') || 'Failed to apply rule');
+      }
     } catch (err) {
       console.error('Failed to apply proxy rule:', err);
+      setApplyError(String(err));
+    }
+  };
+
+  const handleRemove = async (rule: ProxyRule) => {
+    if (!window.electronAPI || !hasActiveDevice) return;
+    setApplyError(null);
+
+    try {
+      const result = await window.electronAPI.invoke('portproxy:remove', activeDeviceSerial, activeDeviceType, {
+        type: rule.type,
+        localPort: rule.localPort,
+        remotePort: rule.remotePort,
+      }) as { success: boolean; error?: string };
+
+      if (result?.success) {
+        setRules(rules.map((r) => r.id === rule.id ? { ...r, applied: false } : r));
+      } else {
+        setApplyError(result?.error || t('proxy.removeFailed') || 'Failed to remove rule');
+      }
+    } catch (err) {
+      console.error('Failed to remove proxy rule:', err);
+      setApplyError(String(err));
     }
   };
 
@@ -78,8 +141,29 @@ const ProxyRuleList: React.FC = () => {
     <>
       <Card
         title={t('proxy.title')}
-        headerActions={<Button size="sm" variant="primary" onClick={handleAdd}>{t('proxy.addRule')}</Button>}
+        headerActions={
+          <div style={{ display: 'flex', gap: 'var(--spacing-xs)', alignItems: 'center' }}>
+            {hasActiveDevice && (
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                {(activeDeviceType || '').toUpperCase()}: {activeDeviceSerial}
+              </span>
+            )}
+            <Button size="sm" variant="primary" onClick={handleAdd}>{t('proxy.addRule')}</Button>
+          </div>
+        }
       >
+        {applyError && (
+          <div style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-xs)', padding: 'var(--spacing-xs)', background: 'var(--color-bg-secondary)', borderRadius: 'var(--border-radius)', marginBottom: 'var(--spacing-sm)' }}>
+            {applyError}
+          </div>
+        )}
+
+        {!hasActiveDevice && (
+          <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textAlign: 'center', padding: 'var(--spacing-sm)', borderBottom: '1px solid var(--color-border)' }}>
+            {t('proxy.noDevice') || 'Connect a device to apply proxy rules'}
+          </div>
+        )}
+
         {rules.map((rule) => (
           <div
             key={rule.id}
@@ -100,16 +184,19 @@ const ProxyRuleList: React.FC = () => {
               {rule.name || `tcp:${rule.localPort} → tcp:${rule.remotePort}`}
             </span>
             <span style={{ color: 'var(--color-text-muted)' }}>{rule.deviceType.toUpperCase()}</span>
-            <Button size="sm" variant="ghost" onClick={() => handleToggle(rule.id)}>
-              {rule.enabled ? 'ON' : 'OFF'}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => handleApply(rule)} disabled={!rule.enabled}>
-              {t('proxy.apply') || 'Apply'}
-            </Button>
+            {rule.applied ? (
+              <Button size="sm" variant="ghost" onClick={() => handleRemove(rule)} disabled={!rule.enabled || !hasActiveDevice}>
+                {t('proxy.remove') || 'Remove'}
+              </Button>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={() => handleApply(rule)} disabled={!rule.enabled || !hasActiveDevice}>
+                {t('proxy.apply') || 'Apply'}
+              </Button>
+            )}
             <Button size="sm" variant="ghost" onClick={() => handleEdit(rule)}>
               {t('network.edit')}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => handleDelete(rule.id)}>
+            <Button size="sm" variant="ghost" onClick={() => handleDelete(rule)}>
               {t('network.del')}
             </Button>
           </div>

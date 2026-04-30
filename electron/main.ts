@@ -126,7 +126,7 @@ app.whenReady().then(async () => {
     registerPackageIpc(packageManager);
     registerConfigIpc(configManager);
     registerPluginIpc(pluginManager);
-    registerPortProxyIpc();
+    registerPortProxyIpc(adbService, hdcService);
     registerConsoleIpc();
   }
 

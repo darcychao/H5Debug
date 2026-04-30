@@ -190,7 +190,12 @@
     "deviceType": "Device Type",
     "localPort": "Local Port",
     "remotePort": "Remote Port",
-    "apply": "Apply"
+    "apply": "Apply",
+    "remove": "Remove",
+    "noDevice": "Connect a device to apply proxy rules",
+    "deviceTypeMismatch": "Rule is for {{rule}} but active device is {{device}}",
+    "applyFailed": "Failed to apply rule",
+    "removeFailed": "Failed to remove rule"
   },
   "common": {
     "ok": "OK",
