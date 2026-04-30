@@ -144,7 +144,15 @@
     "running": "运行中...",
     "batchExecute": "批量执行",
     "results": "结果：",
-    "connectDeviceFirst": "请先连接设备再执行测试"
+    "connectDeviceFirst": "请先连接设备再执行测试",
+    "recorder": "录制器",
+    "record": "录制",
+    "stop": "停止",
+    "recording": "录制中",
+    "saveAsCase": "保存为用例",
+    "discard": "丢弃",
+    "recordHint": "点击\"录制\"开始捕获操作",
+    "selectCase": "选择用例"
   },
   "selector": {
     "title": "元素选择器",

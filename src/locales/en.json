@@ -144,7 +144,15 @@
     "running": "Running...",
     "batchExecute": "Batch Execute",
     "results": "Results:",
-    "connectDeviceFirst": "Connect a device first to execute test cases"
+    "connectDeviceFirst": "Connect a device first to execute test cases",
+    "recorder": "Recorder",
+    "record": "Record",
+    "stop": "Stop",
+    "recording": "Recording",
+    "saveAsCase": "Save as Test Case",
+    "discard": "Discard",
+    "recordHint": "Click \"Record\" to start capturing operations",
+    "selectCase": "Select Case"
   },
   "selector": {
     "title": "Element Selector",

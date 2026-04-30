@@ -89,7 +89,7 @@ const MainLayout: React.FC = () => {
                     <CaseDesigner testCase={activeTestCase} onCreateCase={(tc) => setActiveTestCaseId(tc.id)} deviceId={activeDeviceId} />
                   </div>
                   <div style={{ flexShrink: 0 }}>
-                    <ExecutionPanel testCase={activeTestCase} />
+                    <ExecutionPanel testCase={activeTestCase} onSelectCase={setActiveTestCaseId} />
                   </div>
                 </div>
               ),
@@ -145,7 +145,7 @@ const MainLayout: React.FC = () => {
 
             <div className="main-right-panel">
               <DeviceDetail deviceId={activeDeviceId} />
-              <Recorder deviceId={activeDeviceId} />
+              <Recorder deviceId={activeDeviceId} onCaseCreated={setActiveTestCaseId} />
               <SelectorPicker deviceId={activeDeviceId} onSelect={handleSelectorSelect} />
             </div>
           </ResizableSplit>
