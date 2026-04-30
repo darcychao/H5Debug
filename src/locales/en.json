@@ -200,6 +200,13 @@
     "success": "Success",
     "loading": "Loading..."
   },
+  "browser": {
+    "title": "Browser",
+    "noDevice": "Connect a device to control the browser",
+    "go": "Go",
+    "loading": "Loading...",
+    "pageTitle": "Title"
+  },
   "footer": {
     "devices": "Devices",
     "cdp": "CDP",

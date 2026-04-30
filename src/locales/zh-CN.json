@@ -200,6 +200,13 @@
     "success": "成功",
     "loading": "加载中..."
   },
+  "browser": {
+    "title": "浏览器",
+    "noDevice": "连接设备后控制浏览器",
+    "go": "前往",
+    "loading": "加载中...",
+    "pageTitle": "标题"
+  },
   "footer": {
     "devices": "设备",
     "cdp": "CDP",

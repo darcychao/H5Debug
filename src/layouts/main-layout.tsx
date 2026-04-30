@@ -20,6 +20,7 @@ import ProxyRuleList from '../panels/port-proxy-panel/ProxyRuleList';
 import CaseList from '../panels/testcase-panel/CaseList';
 import CaseDesigner from '../panels/testcase-panel/CaseDesigner';
 import ExecutionPanel from '../panels/testcase-panel/ExecutionPanel';
+import BrowserControl from '../panels/browser-panel/BrowserControl';
 import { useTestcaseStore } from '../stores/testcase.store';
 import SelectorPicker from '../panels/testcase-panel/SelectorPicker';
 import Recorder from '../panels/testcase-panel/Recorder';
@@ -144,6 +145,7 @@ const MainLayout: React.FC = () => {
             </ResizableSplit>
 
             <div className="main-right-panel">
+              <BrowserControl deviceId={activeDeviceId} />
               <DeviceDetail deviceId={activeDeviceId} />
               <Recorder deviceId={activeDeviceId} onCaseCreated={setActiveTestCaseId} />
               <SelectorPicker deviceId={activeDeviceId} onSelect={handleSelectorSelect} />

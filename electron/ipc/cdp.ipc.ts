@@ -26,6 +26,15 @@ function forwardCdpEvent(deviceId: string, method: string, params: unknown) {
   if (method === 'Fetch.requestPaused') {
     currentMainWindow.webContents.send('cdp:network:request', { deviceId, params });
   }
+  if (method === 'Page.frameNavigated') {
+    const p = params as { frame?: { url?: string; id?: string } };
+    if (p?.frame?.url) {
+      currentMainWindow.webContents.send('cdp:page:navigated', { deviceId, url: p.frame.url, frameId: p.frame.id });
+    }
+  }
+  if (method === 'Page.loadEventFired') {
+    currentMainWindow.webContents.send('cdp:page:loaded', { deviceId });
+  }
 }
 
 export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
@@ -214,6 +223,58 @@ export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {
       // Disconnect and reconnect to the specified target
       await cdpPool.disconnect(deviceId);
       return cdpPool.connect(deviceId, [], wsUrl);
+    });
+
+    // Page control: reload
+    ipcMain.handle('cdp:page:reload', async (_event, deviceId: string) => {
+      return sendWithReconnect(deviceId, 'Page.reload');
+    });
+
+    // Page control: navigate to URL
+    ipcMain.handle('cdp:page:navigate', async (_event, deviceId: string, url: string) => {
+      return sendWithReconnect(deviceId, 'Page.navigate', { url });
+    });
+
+    // Page control: go back in navigation history
+    ipcMain.handle('cdp:page:goBack', async (_event, deviceId: string) => {
+      try {
+        const result = await sendWithReconnect(deviceId, 'Page.getNavigationHistory') as any;
+        if (result && result.currentIndex > 0) {
+          const entry = result.entries[result.currentIndex - 1];
+          return sendWithReconnect(deviceId, 'Page.navigateToHistoryEntry', { entryId: entry.id });
+        }
+      } catch {}
+      return null;
+    });
+
+    // Page control: go forward in navigation history
+    ipcMain.handle('cdp:page:goForward', async (_event, deviceId: string) => {
+      try {
+        const result = await sendWithReconnect(deviceId, 'Page.getNavigationHistory') as any;
+        if (result && result.currentIndex < result.entries.length - 1) {
+          const entry = result.entries[result.currentIndex + 1];
+          return sendWithReconnect(deviceId, 'Page.navigateToHistoryEntry', { entryId: entry.id });
+        }
+      } catch {}
+      return null;
+    });
+
+    // Page control: get current URL and title
+    ipcMain.handle('cdp:page:getInfo', async (_event, deviceId: string) => {
+      try {
+        // Ensure Page domain is enabled for events
+        try { await sendWithReconnect(deviceId, 'Page.enable'); } catch {}
+        const [urlResult, titleResult] = await Promise.all([
+          sendWithReconnect(deviceId, 'Runtime.evaluate', { expression: 'location.href', returnByValue: true }),
+          sendWithReconnect(deviceId, 'Runtime.evaluate', { expression: 'document.title', returnByValue: true }),
+        ]);
+        return {
+          url: (urlResult as any)?.result?.value || '',
+          title: (titleResult as any)?.result?.value || '',
+        };
+      } catch {
+        return { url: '', title: '' };
+      }
     });
 
     // Forward CDP events to renderer
