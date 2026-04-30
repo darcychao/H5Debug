@@ -45,6 +45,10 @@ const electronAPI = {
       'network:intercept:get-enabled',
       'network:intercept:set-rules',
       'network:intercept:get-rules',
+      'console:override:list',
+      'console:override:create',
+      'console:override:update',
+      'console:override:delete',
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, ...args);

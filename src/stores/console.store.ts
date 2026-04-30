@@ -21,9 +21,11 @@ interface ConsoleState {
   methodOverrides: MethodOverride[];
   history: string[];
   historyIndex: number;
+  loaded: boolean;
 
   addEntry: (entry: ConsoleEntry) => void;
   clearEntries: () => void;
+  loadMethodOverrides: () => Promise<void>;
   addMethodOverride: (override: MethodOverride) => void;
   updateMethodOverride: (id: string, updates: Partial<MethodOverride>) => void;
   removeMethodOverride: (id: string) => void;
@@ -44,6 +46,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   methodOverrides: [],
   history: [],
   historyIndex: -1,
+  loaded: false,
 
   addEntry: (entry) =>
     set((state) => ({
@@ -62,22 +65,44 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       ],
     }),
 
-  addMethodOverride: (override) =>
+  loadMethodOverrides: async () => {
+    if (!window.electronAPI) return;
+    try {
+      const overrides = await window.electronAPI.invoke('console:override:list');
+      set({ methodOverrides: overrides, loaded: true });
+    } catch (err) {
+      console.error('Failed to load method overrides:', err);
+    }
+  },
+
+  addMethodOverride: async (override) => {
     set((state) => ({
       methodOverrides: [...state.methodOverrides, override],
-    })),
+    }));
+    if (window.electronAPI) {
+      await window.electronAPI.invoke('console:override:create', override);
+    }
+  },
 
-  updateMethodOverride: (id, updates) =>
+  updateMethodOverride: async (id, updates) => {
     set((state) => ({
       methodOverrides: state.methodOverrides.map((o) =>
         o.id === id ? { ...o, ...updates } : o,
       ),
-    })),
+    }));
+    if (window.electronAPI) {
+      await window.electronAPI.invoke('console:override:update', id, updates);
+    }
+  },
 
-  removeMethodOverride: (id) =>
+  removeMethodOverride: async (id) => {
     set((state) => ({
       methodOverrides: state.methodOverrides.filter((o) => o.id !== id),
-    })),
+    }));
+    if (window.electronAPI) {
+      await window.electronAPI.invoke('console:override:delete', id);
+    }
+  },
 
   addToHistory: (cmd) =>
     set((state) => ({

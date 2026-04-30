@@ -20,6 +20,7 @@ import { registerConfigIpc } from './ipc/config.ipc';
 import { registerPluginIpc } from './ipc/plugin.ipc';
 import { registerNetworkIpc } from './ipc/network.ipc';
 import { registerPortProxyIpc } from './ipc/portproxy.ipc';
+import { registerConsoleIpc } from './ipc/console.ipc';
 import { initDatabase, closeDatabase } from './db/database';
 
 let mainWindow: BrowserWindow | null = null;
@@ -119,6 +120,7 @@ app.whenReady().then(async () => {
     registerConfigIpc(configManager);
     registerPluginIpc(pluginManager);
     registerPortProxyIpc();
+    registerConsoleIpc();
   }
 
   createWindow();

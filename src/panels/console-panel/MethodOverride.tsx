@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../../components/pixel-ui/Card';
 import Button from '../../components/pixel-ui/Button';
 import Input from '../../components/pixel-ui/Input';
@@ -7,9 +7,15 @@ import Modal from '../../components/pixel-ui/Modal';
 import { useConsoleStore, MethodOverride } from '../../stores/console.store';
 
 const MethodOverride: React.FC = () => {
-  const { methodOverrides, addMethodOverride, updateMethodOverride, removeMethodOverride } = useConsoleStore();
+  const { methodOverrides, addMethodOverride, updateMethodOverride, removeMethodOverride, loadMethodOverrides, loaded } = useConsoleStore();
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<MethodOverride | null>(null);
+
+  useEffect(() => {
+    if (!loaded) {
+      loadMethodOverrides();
+    }
+  }, [loadMethodOverrides, loaded]);
 
   const handleSave = () => {
     if (!editing) return;
