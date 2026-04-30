@@ -179,8 +179,18 @@
   },
   "proxy": {
     "title": "Port Proxy",
-    "addRule": "Add Rule",
-    "noRules": "No proxy rules configured"
+    "addRule": "+ Add Rule",
+    "noRules": "No proxy rules configured. Click \"+ Add Rule\" to create one.",
+    "ruleEditor": "Proxy Rule",
+    "ruleName": "Rule Name",
+    "ruleNamePlaceholder": "e.g. Dev Server Proxy",
+    "type": "Type",
+    "forward": "Forward (local → device)",
+    "reverse": "Reverse (device → local)",
+    "deviceType": "Device Type",
+    "localPort": "Local Port",
+    "remotePort": "Remote Port",
+    "apply": "Apply"
   },
   "common": {
     "ok": "OK",
