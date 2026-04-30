@@ -41,6 +41,8 @@ export interface PluginRow {
 type Database = any;
 type SqlJsStatic = any;
 
+const DB_VERSION = 1;
+
 let sql: SqlJsStatic | null = null;
 let db: Database | null = null;
 let dbInitialized = false;
@@ -88,7 +90,20 @@ export async function initDatabase(): Promise<void> {
       try {
         // Try to load sql.js
         const initSqlJs = require('sql.js');
-        sql = await initSqlJs();
+
+        // Locate WASM file relative to sql.js package in node_modules
+        const sqlJsPath = require.resolve('sql.js');
+        const sqlJsDir = path.dirname(sqlJsPath);
+
+        sql = await initSqlJs({
+          locateFile: (file: string) => {
+            const resolved = path.join(sqlJsDir, file);
+            if (fs.existsSync(resolved)) {
+              return resolved;
+            }
+            return file;
+          },
+        });
       } finally {
         // Restore original
         if (originalModule !== undefined) {
@@ -107,28 +122,85 @@ export async function initDatabase(): Promise<void> {
     let fileBuffer: Uint8Array | undefined;
     if (fs.existsSync(dbPath)) {
       fileBuffer = fs.readFileSync(dbPath);
-      console.log('[Database] Loaded existing database');
+      if (fileBuffer.length === 0) {
+        console.warn('[Database] Database file is empty, creating new database');
+        fileBuffer = undefined;
+      } else {
+        console.log('[Database] Loaded existing database, size:', fileBuffer.length);
+      }
     }
 
     db = new sql.Database(fileBuffer);
 
-    // Create tables
+    // Create tables and run migrations
     runMigrations();
 
     // Save initial state
     saveToDisk();
 
     dbInitialized = true;
+    console.log('[Database] Initialized successfully');
   } catch (err) {
     console.error('[Database] Initialization failed:', err);
-    // Don't rethrow - allow app to continue without database functionality
+    // Reset state so retry is possible
+    db = null;
+    dbInitialized = false;
+    throw err;
   }
+}
+
+function getTableColumns(tableName: string): string[] {
+  if (!db) return [];
+  try {
+    const results = db.exec(`PRAGMA table_info(${tableName})`);
+    if (results.length === 0) return [];
+    return results[0].values.map((row: any[]) => row[1] as string);
+  } catch {
+    return [];
+  }
+}
+
+function columnExists(tableName: string, columnName: string): boolean {
+  return getTableColumns(tableName).includes(columnName);
+}
+
+function addColumnIfMissing(tableName: string, columnName: string, definition: string): void {
+  if (!db) return;
+  if (!columnExists(tableName, columnName)) {
+    try {
+      db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+      console.log(`[Database] Added column ${columnName} to ${tableName}`);
+    } catch (err) {
+      console.warn(`[Database] Failed to add column ${columnName} to ${tableName}:`, err);
+    }
+  }
+}
+
+function getDbVersion(): number {
+  if (!db) return 0;
+  try {
+    const results = db.exec('PRAGMA user_version');
+    if (results.length > 0 && results[0].values.length > 0) {
+      return (results[0].values[0][0] as number) || 0;
+    }
+  } catch {
+    // ignore
+  }
+  return 0;
+}
+
+function setDbVersion(version: number): void {
+  if (!db) return;
+  db.exec(`PRAGMA user_version = ${version}`);
 }
 
 function runMigrations(): void {
   if (!db) return;
 
-  // Test cases table
+  const currentVersion = getDbVersion();
+
+  // Version 0: initial schema (or old database without version tracking)
+  // Always run CREATE TABLE IF NOT EXISTS to ensure base tables exist
   db.exec(`
     CREATE TABLE IF NOT EXISTS testcase (
       id TEXT PRIMARY KEY,
@@ -142,7 +214,6 @@ function runMigrations(): void {
     );
   `);
 
-  // Network records table (optional)
   db.exec(`
     CREATE TABLE IF NOT EXISTS network_record (
       id TEXT PRIMARY KEY,
@@ -160,7 +231,6 @@ function runMigrations(): void {
     );
   `);
 
-  // Console overrides table (optional)
   db.exec(`
     CREATE TABLE IF NOT EXISTS console_override (
       id TEXT PRIMARY KEY,
@@ -172,7 +242,6 @@ function runMigrations(): void {
     );
   `);
 
-  // Plugins table (optional)
   db.exec(`
     CREATE TABLE IF NOT EXISTS plugin (
       id TEXT PRIMARY KEY,
@@ -184,6 +253,24 @@ function runMigrations(): void {
       installed_at INTEGER NOT NULL
     );
   `);
+
+  // Migrations for databases created before schema changes
+  // Example: addColumnIfMissing('testcase', 'new_column', 'TEXT DEFAULT NULL');
+
+  // Ensure all expected columns exist (handles partial schemas from old versions)
+  addColumnIfMissing('testcase', 'device_id', 'TEXT');
+  addColumnIfMissing('testcase', 'steps', "TEXT NOT NULL DEFAULT '[]'");
+  addColumnIfMissing('network_record', 'request_id', 'TEXT');
+  addColumnIfMissing('network_record', 'status_text', "TEXT DEFAULT ''");
+  addColumnIfMissing('network_record', 'response_body', 'TEXT');
+  addColumnIfMissing('console_override', 'description', "TEXT DEFAULT ''");
+  addColumnIfMissing('plugin', 'author', "TEXT DEFAULT ''");
+
+  // Mark database as current version
+  if (currentVersion < DB_VERSION) {
+    setDbVersion(DB_VERSION);
+    console.log(`[Database] Migrated from version ${currentVersion} to ${DB_VERSION}`);
+  }
 }
 
 export function getDatabase(): Database | null {

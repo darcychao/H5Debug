@@ -106,11 +106,18 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  // Initialize database (don't block app startup)
+  // Initialize database (required for data persistence)
   try {
     await initDatabase();
   } catch (err) {
     console.error('Failed to initialize database:', err);
+    // Retry once after a short delay - sql.js WASM may need time to load
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await initDatabase();
+    } catch (retryErr) {
+      console.error('Database initialization failed on retry:', retryErr);
+    }
   }
 
   // Register IPC handlers that don't need mainWindow first (only once)
