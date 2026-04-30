@@ -95,10 +95,18 @@
   "package": {
     "title": "Packages",
     "noDevice": "Connect a device to view packages",
-    "placeholder": "Package name or path...",
+    "placeholder": "Filter packages...",
     "install": "Install",
+    "upload": "Upload & Install",
     "uninstall": "Uninstall",
-    "clearCache": "Clear Cache"
+    "clearCache": "Clear Cache",
+    "refresh": "Refresh",
+    "noPackages": "No packages found",
+    "installing": "Installing...",
+    "uninstalling": "Uninstalling...",
+    "clearing": "Clearing cache...",
+    "loading": "Loading...",
+    "count": "{{count}} packages"
   },
   "testcase": {
     "title": "Test Cases",

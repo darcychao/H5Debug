@@ -28,6 +28,7 @@ const electronAPI = {
       'package:install',
       'package:uninstall',
       'package:clear',
+      'package:upload',
       'testcase:list',
       'testcase:get',
       'testcase:create',

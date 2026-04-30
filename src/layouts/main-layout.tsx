@@ -107,7 +107,7 @@ const MainLayout: React.FC = () => {
       items={[
         { key: 'network', label: t('nav.network'), content: <NetworkPanel /> },
         { key: 'log', label: t('nav.log'), content: <LogPanel /> },
-        { key: 'package', label: t('nav.package'), content: <PackagePanel /> },
+        { key: 'package', label: t('nav.package'), content: <PackagePanel deviceId={activeDeviceId} /> },
         { key: 'proxy', label: t('nav.proxy'), content: <ProxyPanel /> },
         { key: 'settings', label: t('nav.settings'), content: <Settings /> },
       ]}
@@ -177,12 +177,19 @@ const LogPanel: React.FC = () => (
   </div>
 );
 
-const PackagePanel: React.FC = () => (
-  <div className="package-panel">
-    <PackageActions />
-    <PackageList />
-  </div>
-);
+const PackagePanel: React.FC<{ deviceId: string | null }> = ({ deviceId }) => {
+  const [deviceType, deviceRealId] = deviceId
+    ? (deviceId.includes(':') ? deviceId.split(':') : [null, null]) as [string | null, string | null]
+    : [null, null];
+  const typedDeviceType = (deviceType === 'adb' || deviceType === 'hdc') ? deviceType : null;
+
+  return (
+    <div className="package-panel">
+      <PackageActions deviceId={deviceRealId} deviceType={typedDeviceType} />
+      <PackageList deviceId={deviceRealId} deviceType={typedDeviceType} />
+    </div>
+  );
+};
 
 const ProxyPanel: React.FC = () => <ProxyRuleList />;
 

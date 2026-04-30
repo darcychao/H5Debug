@@ -8,7 +8,8 @@
       "Bash(npm install *)",
       "Bash(npx tsc:*)",
       "Bash(npm run *)",
-      "Bash(./node_modules/.bin/tsc --noEmit --pretty)"
+      "Bash(./node_modules/.bin/tsc --noEmit --pretty)",
+      "Bash(xargs grep *)"
     ]
   }
 }
