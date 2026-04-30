@@ -111,8 +111,7 @@ export class CdpClient extends EventEmitter {
     // CDP event
     if (msg.method) {
       if (msg.method === 'Page.screencastFrame') {
-        const p = msg.params as any;
-        console.log('[CdpClient] Page.screencastFrame event, hasData=', !!p?.data, 'dataLen=', p?.data?.length, 'sessionId=', p?.sessionId, 'metadata=', JSON.stringify(p?.metadata)?.substring(0, 100));
+        // Silently handle screencast frames - too frequent for logging
       }
       this.emit('event', msg.method, msg.params);
       this.emit(msg.method, msg.params);

@@ -55,8 +55,9 @@ const MainLayout: React.FC = () => {
       try {
         const status = await window.electronAPI.invoke('debug:cdpStatus') as any;
         setCdpDebug(JSON.stringify(status?.clientIds ?? []));
-        // Find connected device port
-        const connected = devices.find((d) => d.status === 'connected' && d.cdpPort > 0);
+        // Re-read devices from store to get current state
+        const currentDevices = useDeviceStore.getState().devices;
+        const connected = currentDevices.find((d) => d.status === 'connected' && d.cdpPort > 0);
         if (connected) {
           const result = await window.electronAPI.invoke('debug:listTargets', connected.cdpPort) as any;
           setCdpTargets(JSON.stringify(result?.targets ?? []));

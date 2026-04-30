@@ -84,6 +84,7 @@ export class CdpPool extends EventEmitter {
 
     this.clients.set(deviceId, client);
     console.log(`[CdpPool] stored client for ${deviceId}, total clients:`, this.clients.size);
+    this.emit('client-connected', deviceId);
     return client;
   }
 

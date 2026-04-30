@@ -75,6 +75,7 @@ const electronAPI = {
       'cdp:page:navigated',
       'cdp:page:loaded',
       'log:stream',
+      'cdp:log:entry',
       'config:changed',
     ];
     if (validChannels.includes(channel)) {

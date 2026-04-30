@@ -35,6 +35,9 @@ function forwardCdpEvent(deviceId: string, method: string, params: unknown) {
   if (method === 'Page.loadEventFired') {
     currentMainWindow.webContents.send('cdp:page:loaded', { deviceId });
   }
+  if (method === 'Log.entryAdded') {
+    currentMainWindow.webContents.send('cdp:log:entry', { deviceId, params });
+  }
 }
 
 export function registerCdpIpc(cdpPool: CdpPool, mainWindow: BrowserWindow) {

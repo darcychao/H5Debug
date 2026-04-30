@@ -84,7 +84,7 @@ function createWindow() {
   registerCdpIpc(cdpPool, mainWindow);
   registerNetworkIpc(cdpPool, mainWindow);
   registerTestcaseIpc(testEngine, recorder, reportGenerator, cdpPool, mainWindow);
-  registerLogIpc(deviceManager, mainWindow);
+  registerLogIpc(deviceManager, cdpPool, mainWindow);
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
